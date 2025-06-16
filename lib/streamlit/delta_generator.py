@@ -46,6 +46,7 @@ from streamlit.delta_generator_singletons import (
     get_last_dg_added_to_context_stack,
 )
 from streamlit.elements.alert import AlertMixin
+from streamlit.elements.arcgis_chart import ArcgisMixin
 from streamlit.elements.arrow import ArrowMixin
 from streamlit.elements.balloons import BalloonsMixin
 from streamlit.elements.bokeh_chart import BokehMixin
@@ -169,6 +170,7 @@ def _maybe_print_fragment_callback_warning() -> None:
 
 class DeltaGenerator(
     AlertMixin,
+    ArcgisMixin,
     AudioInputMixin,
     BalloonsMixin,
     BokehMixin,

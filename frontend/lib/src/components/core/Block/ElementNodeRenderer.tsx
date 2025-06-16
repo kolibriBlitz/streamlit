@@ -21,6 +21,7 @@ import classNames from "classnames"
 
 import {
   Alert as AlertProto,
+  ArcgisChart as ArcgisChartProto,
   Arrow as ArrowProto,
   AudioInput as AudioInputProto,
   Audio as AudioProto,
@@ -98,6 +99,7 @@ import {
 import { StyledElementContainerLayoutWrapper } from "./StyledElementContainerLayoutWrapper"
 
 // Lazy-load elements.
+const ArcgisChart = lazy(() => import("~lib/components/elements/ArcgisChart"))
 const Audio = lazy(() => import("~lib/components/elements/Audio"))
 const Balloons = lazy(() => import("~lib/components/elements/Balloons"))
 const Snow = lazy(() => import("~lib/components/elements/Snow"))
@@ -203,6 +205,16 @@ const RawElementNodeRenderer = (
           body={alertProto.body}
           kind={getAlertElementKind(alertProto.format)}
           {...elementProps}
+        />
+      )
+    }
+    case "arcgisChart": {
+      const arcgisProto = node.element.arcgisChart as ArcgisChartProto
+      return (
+        <ArcgisChart
+          key={arcgisProto.id}
+          element={arcgisProto}
+          {...widgetProps}
         />
       )
     }

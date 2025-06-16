@@ -20,6 +20,7 @@ option java_package = "com.snowflake.apps.streamlit";
 option java_outer_classname = "ElementProto";
 
 import "streamlit/proto/Alert.proto";
+import "streamlit/proto/ArcgisChart.proto";
 import "streamlit/proto/Arrow.proto";
 import "streamlit/proto/Audio.proto";
 import "streamlit/proto/AudioInput.proto";
@@ -83,6 +84,7 @@ message Element {
   // An element can be one of the following element types.
   oneof type {
     Alert alert = 30;
+    ArcgisChart arcgis_chart = 59;
     Arrow arrow_data_frame = 40;
     Arrow arrow_table = 39;
     ArrowVegaLiteChart arrow_vega_lite_chart = 41;
@@ -138,7 +140,7 @@ message Element {
     Video video = 14;
     Heading heading = 47;
     Code code = 48;
-    // Next ID: 59
+    // Next ID: 60
   }
 
   reserved 9;

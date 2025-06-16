@@ -285,6 +285,8 @@ class WriteMixin:
                   - Uses ``st.help()``.
                 * - Altair chart
                   - Uses ``st.altair_chart()``.
+                * - Arcgis chart
+                  - Uses ``st.arcgis_chart()``.
                 * - Bokeh figure
                   - Uses ``st.bokeh_chart()``.
                 * - Graphviz graph
@@ -440,6 +442,7 @@ class WriteMixin:
                 )
                 string_buffer[:] = []
 
+        # Write the args to the buffer
         for arg in args:
             # Order matters!
             if isinstance(arg, str):
@@ -464,6 +467,9 @@ class WriteMixin:
             elif type_util.is_altair_chart(arg):
                 flush_buffer()
                 self.dg.altair_chart(arg)
+            elif type_util.is_arcgis_chart(arg):
+                flush_buffer()
+                self.dg.arcgis_chart(arg)
             elif type_util.is_type(arg, "matplotlib.figure.Figure"):
                 flush_buffer()
                 self.dg.pyplot(arg)

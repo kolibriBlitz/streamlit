@@ -165,6 +165,7 @@ _config.on_config_parsed(_update_logger, True)
 secrets = _secrets_singleton
 
 altair_chart = _main.altair_chart
+arcgis_chart = _main.arcgis_chart
 area_chart = _main.area_chart
 audio = _main.audio
 audio_input = _main.audio_input
