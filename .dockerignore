@@ -1,0 +1,56 @@
+# Version control
+# .git
+# .gitignore
+# .github
+
+# Node.js
+node_modules
+**/node_modules
+frontend/node_modules
+v8-compile-cache-0
+node-compile-cache
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov/
+.hypothesis/
+.benchmarks/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-e2e-README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+.cursor
+
+# Frontend
+.swc
+.swc-cache

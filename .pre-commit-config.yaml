@@ -171,6 +171,20 @@ repos:
           /vendor/
           |^vendor/
           |^component-lib/declarations/apache-arrow
+      - id: insert-license
+        name: Add license for all Dockerfile files
+        files: Dockerfile$
+        args:
+          - --comment-style
+          - "|#|"
+          - --license-filepath
+          - scripts/license-template.txt
+          - --fuzzy-match-generates-todo
+        exclude: |
+          (?x)
+          /vendor/
+          |^vendor/
+          |^component-lib/declarations/apache-arrow
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
