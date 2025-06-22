@@ -217,3 +217,46 @@ def test_help_tooltip(app: Page):
         get_button_group(app, "segmented_control_multi_selection"),
         "You can choose multiple options",
     )
+
+
+def test_required_single_segmented_control(app: Page):
+    """Test required single segmented control behavior."""
+    segmented_control = get_button_group(app, "segmented_control_required_single")
+    expect_markdown(app, "segmented-control-required-single: Joy")
+
+    # Here, we switch between options in single select mode.
+    # We click a different option to validate the single select functionality.
+    # The new option should become selected, replacing the previous one.
+    get_segment_button(segmented_control, "Anger").click()
+    wait_for_app_run(app)
+    expect_markdown(app, "segmented-control-required-single: Anger")
+
+    # We then attempt to deselect the currently selected option,
+    # which should have no effect. The selection should remain unchanged.
+    get_segment_button(segmented_control, "Anger").click()
+    wait_for_app_run(app)
+    expect_markdown(app, "segmented-control-required-single: Anger")
+
+
+def test_required_multi_segmented_control(app: Page):
+    """Test required multi segmented control behavior."""
+    segmented_control = get_button_group(app, "segmented_control_required_multi")
+    expect_markdown(app, "segmented-control-required-multi: ['Joy']")
+
+    # Here, we select another option to validate the multi select functionality.
+    # The new option should be added to the selection (a total of 2).
+    get_segment_button(segmented_control, "Anger").click()
+    wait_for_app_run(app)
+    expect_markdown(app, "segmented-control-required-multi: ['Joy', 'Anger']")
+
+    # Let's now try to deselect one option.
+    # This should work since there are multiple selected
+    get_segment_button(segmented_control, "Joy").click()
+    wait_for_app_run(app)
+    expect_markdown(app, "segmented-control-required-multi: ['Anger']")
+
+    # But if we try to deselect the only selected option, this should
+    # have no effect since at least one selection is always required
+    get_segment_button(segmented_control, "Anger").click()
+    wait_for_app_run(app)
+    expect_markdown(app, "segmented-control-required-multi: ['Anger']")

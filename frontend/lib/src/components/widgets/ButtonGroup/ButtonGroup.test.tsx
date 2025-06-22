@@ -635,3 +635,90 @@ describe("ButtonGroup getContentElement", () => {
     expect(size).toBe(BaseButtonSize.MEDIUM)
   })
 })
+
+describe("required property", () => {
+  it("prevents deselection in single select mode when required=true", async () => {
+    const user = userEvent.setup()
+    const props = getProps({
+      clickMode: ButtonGroupProto.ClickMode.SINGLE_SELECT,
+      default: [1],
+      required: true,
+    })
+    vi.spyOn(props.widgetMgr, "setIntArrayValue")
+    render(<ButtonGroup {...props} />)
+
+    /*
+     * First, we start with option at index 1 selected. We then
+     * verify that when the required property is set to true,
+     * clicking the already selected button doesn't deselect it.
+     */
+    await user.click(getButtonGroupButtons()[1])
+    expect(props.widgetMgr.setIntArrayValue).not.toHaveBeenCalledWith(
+      props.element,
+      [],
+      { fromUi: true },
+      undefined
+    )
+
+    /*
+     * Even though deselection is prevented, it should still be possible
+     * to select a different option (that is any option other than 1).
+     */
+    await user.click(getButtonGroupButtons()[0])
+    expect(props.widgetMgr.setIntArrayValue).toHaveBeenCalledWith(
+      props.element,
+      [0],
+      { fromUi: true },
+      undefined
+    )
+  })
+
+  it("prevents deselection in multi-select mode when required=true", async () => {
+    const user = userEvent.setup()
+    const props = getProps({
+      clickMode: ButtonGroupProto.ClickMode.MULTI_SELECT,
+      default: [2],
+      required: true,
+    })
+    vi.spyOn(props.widgetMgr, "setIntArrayValue")
+    render(<ButtonGroup {...props} />)
+
+    /*
+     * First, we start with option at index 2 selected. We then
+     * verify that when the required property is set to true,
+     * clicking the already selected button doesn't deselect it.
+     */
+    await user.click(getButtonGroupButtons()[2])
+    expect(props.widgetMgr.setIntArrayValue).not.toHaveBeenCalledWith(
+      props.element,
+      [],
+      { fromUi: true },
+      undefined
+    )
+
+    /*
+     * Once we have multiple selections, we should be able to deselect
+     * individual options, as long as at least one option remains selected.
+     * First, let's select an additional option (1 in addition to 2).
+     */
+    await user.click(getButtonGroupButtons()[1])
+    expect(props.widgetMgr.setIntArrayValue).toHaveBeenCalledWith(
+      props.element,
+      [2, 1],
+      { fromUi: true },
+      undefined
+    )
+
+    /*
+     * Now that we have two options selected, we should be able to deselect
+     * the original option because we'd still have one selected (that is 1).
+     */
+    await user.click(getButtonGroupButtons()[2])
+    expect(props.widgetMgr.setIntArrayValue).toHaveBeenCalledWith(
+      props.element,
+      [1],
+      { fromUi: true },
+      undefined
+    )
+  })
+})

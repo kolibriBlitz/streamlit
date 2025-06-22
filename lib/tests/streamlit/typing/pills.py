@@ -53,3 +53,19 @@ if TYPE_CHECKING:
         pills("foo", options, selection_mode="multi", default=[1]),
         list[int],
     )
+    assert_type(
+        pills("foo", options, required=True, default=1),
+        int,
+    )
+    assert_type(
+        pills("foo", options, selection_mode="single", required=True, default=1),
+        int,
+    )
+    assert_type(
+        pills("foo", options, selection_mode="multi", required=True, default=1),
+        list[int],
+    )
+    assert_type(
+        pills("foo", options, selection_mode="multi", required=True, default=[1]),
+        list[int],
+    )

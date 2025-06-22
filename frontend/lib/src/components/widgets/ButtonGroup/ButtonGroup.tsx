@@ -70,10 +70,29 @@ function handleMultiSelection(
 function handleSelection(
   mode: ButtonGroupProto.ClickMode,
   index: number,
-  currentSelection?: number[]
+  currentSelection: number[] = [],
+  required?: boolean
 ): number[] {
   if (mode == ButtonGroupProto.ClickMode.MULTI_SELECT) {
-    return handleMultiSelection(index, currentSelection ?? [])
+    // If multi-select is required, prevent deselecting all options
+    const potentialSelection = handleMultiSelection(
+      index,
+      currentSelection ?? []
+    )
+    if (required && potentialSelection.length === 0) {
+      return currentSelection ?? []
+    }
+    return potentialSelection
+  }
+
+  // In single-select mode, prevent deselection if there's only
+  // one item selected and it's required
+  if (
+    required &&
+    currentSelection?.length === 1 &&
+    currentSelection[0] === index
+  ) {
+    return currentSelection
   }
 
   // unselect if item is already selected
@@ -296,6 +315,7 @@ function ButtonGroup(props: Readonly<Props>): ReactElement {
     label,
     labelVisibility,
     help,
+    required,
   } = element
   const theme = useEmotionTheme()
 
@@ -316,7 +336,7 @@ function ButtonGroup(props: Readonly<Props>): ReactElement {
     _event: React.SyntheticEvent<HTMLButtonElement>,
     index: number
   ): void => {
-    const newSelected = handleSelection(clickMode, index, value)
+    const newSelected = handleSelection(clickMode, index, value, required)
     setValueWithSource({ value: newSelected, fromUi: true })
   }
 

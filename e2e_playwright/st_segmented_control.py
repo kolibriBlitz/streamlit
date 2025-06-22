@@ -175,6 +175,34 @@ s6 = st.segmented_control(
 )
 st.write("segmented-control-after-sleep:", str(s6))
 
+st.header(
+    "Required Single - Segmented Control",
+    anchor="segmented-control-required-single",
+)
+selection = st.segmented_control(
+    "Select an emotion (required):",
+    ["Joy", "Sadness", "Anger", "Disgust"],
+    key="segmented_control_required_single",
+    selection_mode="single",
+    required=True,
+    default="Joy",
+)
+st.write(f"segmented-control-required-single: {selection}")
+
+st.header(
+    "Required Multi - Segmented Control",
+    anchor="segmented-control-required-multi",
+)
+selection = st.segmented_control(
+    "Select emotions (required):",
+    ["Joy", "Sadness", "Anger", "Disgust"],
+    key="segmented_control_required_multi",
+    selection_mode="multi",
+    required=True,
+    default=["Joy"],
+)
+st.write(f"segmented-control-required-multi: {selection}")
+
 
 if "runs" not in st.session_state:
     st.session_state.runs = 0

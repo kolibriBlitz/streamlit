@@ -225,6 +225,7 @@ def _build_proto(
     label: str | None = None,
     label_visibility: LabelVisibility = "visible",
     help: str | None = None,
+    required: bool = False,
 ) -> ButtonGroupProto:
     proto = ButtonGroupProto()
 
@@ -234,6 +235,7 @@ def _build_proto(
     proto.disabled = disabled
     proto.click_mode = click_mode
     proto.style = ButtonGroupProto.Style.Value(style.upper())
+    proto.required = required
 
     # not passing the label looks the same as a collapsed label
     if label is not None:
@@ -427,7 +429,26 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: Literal[False] = False,
     ) -> V | None: ...
+    @overload
+    def pills(
+        self,
+        label: str,
+        options: OptionSequence[V],
+        *,
+        selection_mode: Literal["single"] = "single",
+        default: V,
+        format_func: Callable[[Any], str] | None = None,
+        key: Key | None = None,
+        help: str | None = None,
+        on_change: WidgetCallback | None = None,
+        args: WidgetArgs | None = None,
+        kwargs: WidgetKwargs | None = None,
+        disabled: bool = False,
+        label_visibility: LabelVisibility = "visible",
+        required: Literal[True],
+    ) -> V: ...
     @overload
     def pills(
         self,
@@ -444,6 +465,25 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: Literal[False] = False,
+    ) -> list[V]: ...
+    @overload
+    def pills(
+        self,
+        label: str,
+        options: OptionSequence[V],
+        *,
+        selection_mode: Literal["multi"],
+        default: Sequence[V] | V,
+        format_func: Callable[[Any], str] | None = None,
+        key: Key | None = None,
+        help: str | None = None,
+        on_change: WidgetCallback | None = None,
+        args: WidgetArgs | None = None,
+        kwargs: WidgetKwargs | None = None,
+        disabled: bool = False,
+        label_visibility: LabelVisibility = "visible",
+        required: Literal[True],
     ) -> list[V]: ...
     @gather_metrics("pills")
     def pills(
@@ -461,6 +501,7 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: bool = False,
     ) -> list[V] | V | None:
         r"""Display a pills widget.
 
@@ -553,6 +594,10 @@ class ButtonGroupMixin:
             label, which can help keep the widget aligned with other widgets.
             If this is ``"collapsed"``, Streamlit displays no label or spacer.
 
+        required : bool
+            An optional boolean that, when set to ``True``, makes sure to
+            have at least one option selected. The default is ``False``.
+
         Returns
         -------
         list of V, V, or None
@@ -618,6 +663,7 @@ class ButtonGroupMixin:
             kwargs=kwargs,
             disabled=disabled,
             label_visibility=label_visibility,
+            required=required,
         )
 
     @overload
@@ -636,7 +682,26 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: Literal[False] = False,
     ) -> V | None: ...
+    @overload
+    def segmented_control(
+        self,
+        label: str,
+        options: OptionSequence[V],
+        *,
+        selection_mode: Literal["single"] = "single",
+        default: V,
+        format_func: Callable[[Any], str] | None = None,
+        key: str | int | None = None,
+        help: str | None = None,
+        on_change: WidgetCallback | None = None,
+        args: WidgetArgs | None = None,
+        kwargs: WidgetKwargs | None = None,
+        disabled: bool = False,
+        label_visibility: LabelVisibility = "visible",
+        required: Literal[True],
+    ) -> V: ...
     @overload
     def segmented_control(
         self,
@@ -653,8 +718,26 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: Literal[False] = False,
     ) -> list[V]: ...
-
+    @overload
+    def segmented_control(
+        self,
+        label: str,
+        options: OptionSequence[V],
+        *,
+        selection_mode: Literal["multi"],
+        default: Sequence[V] | V,
+        format_func: Callable[[Any], str] | None = None,
+        key: str | int | None = None,
+        help: str | None = None,
+        on_change: WidgetCallback | None = None,
+        args: WidgetArgs | None = None,
+        kwargs: WidgetKwargs | None = None,
+        disabled: bool = False,
+        label_visibility: LabelVisibility = "visible",
+        required: Literal[True],
+    ) -> list[V]: ...
     @gather_metrics("segmented_control")
     def segmented_control(
         self,
@@ -671,6 +754,7 @@ class ButtonGroupMixin:
         kwargs: WidgetKwargs | None = None,
         disabled: bool = False,
         label_visibility: LabelVisibility = "visible",
+        required: bool = False,
     ) -> list[V] | V | None:
         r"""Display a segmented control widget.
 
@@ -762,6 +846,10 @@ class ButtonGroupMixin:
             label, which can help keep the widget aligned with other widgets.
             If this is ``"collapsed"``, Streamlit displays no label or spacer.
 
+        required : bool
+            An optional boolean that, when set to ``True``, makes sure to
+            have at least one option selected. The default is ``False``.
+
         Returns
         -------
         list of V, V, or None
@@ -830,6 +918,7 @@ class ButtonGroupMixin:
             kwargs=kwargs,
             disabled=disabled,
             label_visibility=label_visibility,
+            required=required,
         )
 
     @gather_metrics("_internal_button_group")
@@ -849,6 +938,7 @@ class ButtonGroupMixin:
         label: str | None = None,
         label_visibility: LabelVisibility = "visible",
         help: str | None = None,
+        required: bool = False,
     ) -> list[V] | V | None:
         maybe_raise_label_warnings(label, label_visibility)
 
@@ -902,6 +992,7 @@ class ButtonGroupMixin:
             kwargs=kwargs,
             label=label,
             label_visibility=label_visibility,
+            required=required,
         )
 
         if selection_mode == "multi":
@@ -932,6 +1023,7 @@ class ButtonGroupMixin:
         label: str | None = None,
         label_visibility: LabelVisibility = "visible",
         help: str | None = None,
+        required: bool = False,
     ) -> RegisterWidgetResult[T]:
         _maybe_raise_selection_mode_warning(selection_mode)
 
@@ -953,6 +1045,15 @@ class ButtonGroupMixin:
             raise StreamlitAPIException(
                 "The default argument to `st.pills` must be a single value when "
                 "`selection_mode='single'`."
+            )
+
+        # Validate that if required=True, there must be at least one default value
+        if required and (
+            default is None or (isinstance(default, Sequence) and len(default) == 0)
+        ):
+            raise StreamlitAPIException(
+                "When 'required' is set to True, you must provide at least one default value. "
+                "Please either provide a default value or set required=False."
             )
 
         if style not in ["borderless", "pills", "segmented_control"]:
@@ -1003,6 +1104,7 @@ class ButtonGroupMixin:
             label=label,
             label_visibility=label_visibility,
             help=help,
+            required=required,
         )
 
         widget_state = register_widget(

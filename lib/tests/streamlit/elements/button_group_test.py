@@ -818,3 +818,155 @@ class ButtonGroupCommandTests(DeltaGeneratorTestCase):
             "['borderless', 'pills', 'segmented_control']. "
             "The argument passed was 'foo'."
         )
+
+    @parameterized.expand(
+        get_command_matrix(
+            [
+                (["Coffee", "Tea", "Water"], "Coffee"),
+                (["Coffee", "Tea", "Water"], ["Coffee"]),
+            ]
+        )
+    )
+    def test_required_with_valid_default(
+        self, command: Callable[..., None], options: list[str], default: Any
+    ):
+        """Test that required=True works with valid default values."""
+        result = command(options, default=default, required=True)
+
+        c = self.get_delta_from_queue().new_element.button_group
+        assert c.required is True
+
+        # When a default value is provided, it should be returned
+        if isinstance(default, list):
+            # For single selection mode, a list with one item gets converted to that item
+            # For multi selection mode, it remains a list
+            selection_mode = (
+                "multi"
+                if len(c.options) > 0
+                and c.click_mode == ButtonGroupProto.ClickMode.MULTI_SELECT
+                else "single"
+            )
+            if selection_mode == "single" and len(default) == 1:
+                assert result == default[0]
+            else:
+                assert result == default
+        else:
+            assert result == default
+
+    @parameterized.expand(
+        get_command_matrix(
+            [
+                (["Coffee", "Tea", "Water"], None),
+                (["Coffee", "Tea", "Water"], []),
+            ]
+        )
+    )
+    def test_required_with_invalid_default(
+        self, command: Callable[..., None], options: list[str], default: Any
+    ):
+        """Test that required=True raises an exception with invalid default values."""
+        with pytest.raises(StreamlitAPIException) as excinfo:
+            command(options, default=default, required=True)
+
+        assert (
+            "When 'required' is set to True, you must provide at least one default value"
+            in str(excinfo.value)
+        )
+
+    @parameterized.expand(
+        [
+            (
+                st.pills,
+                "label",
+                ["Coffee", "Tea", "Water"],
+                {},
+                False,
+            ),
+            (
+                st.pills,
+                "label",
+                ["Coffee", "Tea", "Water"],
+                {
+                    "required": True,
+                    "default": "Coffee",
+                },
+                True,
+            ),
+            (
+                st.segmented_control,
+                "label",
+                ["Coffee", "Tea", "Water"],
+                {},
+                False,
+            ),
+            (
+                st.segmented_control,
+                "label",
+                ["Coffee", "Tea", "Water"],
+                {
+                    "required": True,
+                    "selection_mode": "multi",
+                    "default": ["Coffee", "Tea"],
+                },
+                True,
+            ),
+        ]
+    )
+    def test_required_proto_population(
+        self,
+        command: Callable,
+        label: str,
+        options: list[str],
+        kwargs: dict[str, Any],
+        expected_required: bool,
+    ):
+        """Test that the required parameter is properly set in the proto."""
+        command(label, options, **kwargs)
+
+        proto = self.get_delta_from_queue().new_element.button_group
+        assert proto.required is expected_required
+
+    def test_required_with_single_select(self):
+        """Test that required=True works with single-select mode."""
+        options = ["Coffee", "Tea", "Water"]
+        default = "Coffee"
+
+        # Test with st.pills
+        result = st.pills(
+            "label", options, selection_mode="single", default=default, required=True
+        )
+
+        proto = self.get_delta_from_queue().new_element.button_group
+        assert proto.required is True
+        assert result == default
+
+        # Test with st.segmented_control
+        result = st.segmented_control(
+            "label", options, selection_mode="single", default=default, required=True
+        )
+
+        proto = self.get_delta_from_queue().new_element.button_group
+        assert proto.required is True
+        assert result == default
+
+    def test_required_with_multi_select(self):
+        """Test that required=True works with multi-select mode."""
+        options = ["Coffee", "Tea", "Water"]
+        default = ["Coffee", "Tea"]
+
+        result = st.pills(
+            "label", options, selection_mode="multi", default=default, required=True
+        )
+
+        proto = self.get_delta_from_queue().new_element.button_group
+        assert proto.required is True
+        assert result == default
+
+        # Similar test for segmented_control
+        result = st.segmented_control(
+            "label", options, selection_mode="multi", default=default, required=True
+        )
+
+        proto = self.get_delta_from_queue().new_element.button_group
+        assert proto.required is True
+        assert result == default

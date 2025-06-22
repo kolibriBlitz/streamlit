@@ -138,6 +138,34 @@ if st.button("Create some elements to unmount component"):
 s6 = st.pills("Elements", ["Water", "Fire", "Earth", "Air"], key="pills_after_sleep")
 st.write("pills-after-sleep:", str(s6))
 
+st.header(
+    "Required Single - Pills",
+    anchor="pills-required-single",
+)
+selection = st.pills(
+    "Select an emotion (required):",
+    ["Joy", "Sadness", "Anger", "Disgust"],
+    key="pills_required_single",
+    selection_mode="single",
+    required=True,
+    default="Joy",
+)
+st.write(f"pills-required-single: {selection}")
+
+st.header(
+    "Required Multi - Pills",
+    anchor="pills-required-multi",
+)
+selection = st.pills(
+    "Select emotions (required):",
+    ["Joy", "Sadness", "Anger", "Disgust"],
+    key="pills_required_multi",
+    selection_mode="multi",
+    required=True,
+    default=["Joy"],
+)
+st.write(f"pills-required-multi: {selection}")
+
 
 if "runs" not in st.session_state:
     st.session_state.runs = 0
