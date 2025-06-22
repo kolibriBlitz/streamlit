@@ -18,8 +18,12 @@ import React from "react"
 
 import { screen } from "@testing-library/react"
 
-import { render } from "~lib/test_util"
-import { WidgetStateManager } from "~lib/WidgetStateManager"
+import { renderWithContexts } from "~lib/test_util"
+import {
+  createFormsData,
+  FormsData,
+  WidgetStateManager,
+} from "~lib/WidgetStateManager"
 
 import Form, { Props } from "./Form"
 
@@ -27,7 +31,6 @@ describe("Form", () => {
   function getProps(props: Partial<Props> = {}): Props {
     return {
       formId: "mockFormId",
-      hasSubmitButton: false,
       scriptNotRunning: false,
       clearOnSubmit: false,
       enterToSubmit: true,
@@ -39,18 +42,39 @@ describe("Form", () => {
       ...props,
     }
   }
+
+  const defaultFormsData = (
+    formsDataOverrides: Partial<FormsData> = {}
+  ): FormsData => {
+    return {
+      ...createFormsData(),
+      ...formsDataOverrides,
+    }
+  }
+
   it("renders without crashing", () => {
-    render(<Form {...getProps()} />)
+    renderWithContexts(
+      <Form {...getProps()} />,
+      {},
+      {
+        formsData: defaultFormsData(),
+      }
+    )
     const formElement = screen.getByTestId("stForm")
     expect(formElement).toBeInTheDocument()
     expect(formElement).toHaveClass("stForm")
   })
 
   it("shows error if !hasSubmitButton && scriptRunState==NOT_RUNNING", () => {
-    const props = getProps({
-      hasSubmitButton: false,
-    })
-    const { rerender } = render(<Form {...props} />)
+    const props = getProps()
+    const { rerender, unmount } = renderWithContexts(
+      <Form {...props} />,
+      {},
+      {
+        // default formsData has no submit buttons
+        formsData: defaultFormsData(),
+      }
+    )
 
     // We have no Submit Button, but the app is still running
     expect(screen.queryByTestId("stFormSubmitButton")).not.toBeInTheDocument()
@@ -66,7 +90,15 @@ describe("Form", () => {
 
     // Until we get a submit button, and the error is removed immediately,
     // regardless of ScriptRunState.
-    rerender(<Form {...getProps({ hasSubmitButton: true })} />)
+    // Need to unmount first and render with a new context since rerender doesn't update contexts
+    unmount()
+    renderWithContexts(
+      <Form {...getProps()} />,
+      {},
+      {
+        formsData: defaultFormsData(),
+      }
+    )
     expect(screen.getByTestId("stForm")).toBeInTheDocument()
     expect(screen.queryByText("Missing Submit Button")).not.toBeInTheDocument()
   })

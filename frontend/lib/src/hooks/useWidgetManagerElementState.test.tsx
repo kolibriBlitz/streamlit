@@ -16,10 +16,13 @@
 
 import React, { FC } from "react"
 
-import { act, render, renderHook, screen } from "@testing-library/react"
+import { act, renderHook, screen } from "@testing-library/react"
 import { userEvent } from "@testing-library/user-event"
 
-import { WidgetStateManager } from "~lib/WidgetStateManager"
+import { Button as SubmitButtonProto } from "@streamlit/protobuf"
+
+import { renderWithContexts } from "~lib/test_util"
+import { createFormsData, WidgetStateManager } from "~lib/WidgetStateManager"
 import Form from "~lib/components/widgets/Form"
 import { RootStyleProvider } from "~lib/RootStyleProvider"
 import { getDefaultTheme } from "~lib/theme"
@@ -105,7 +108,6 @@ describe("useWidgetManagerElementState hook", () => {
             formId={formId}
             clearOnSubmit={true}
             enterToSubmit={false}
-            hasSubmitButton={true}
             widgetMgr={widgetMgr}
             border={false}
             scriptNotRunning={true}
@@ -121,7 +123,26 @@ describe("useWidgetManagerElementState hook", () => {
       )
     }
 
-    render(<TestComponent />)
+    renderWithContexts(
+      <TestComponent />,
+      {},
+      {
+        formsData: {
+          ...createFormsData(),
+          submitButtons: new Map([
+            [
+              formId,
+              [
+                new SubmitButtonProto({
+                  id: "submitBtn1",
+                  formId,
+                }),
+              ],
+            ],
+          ]),
+        },
+      }
+    )
 
     // verify default value
     const inputElement: HTMLInputElement =

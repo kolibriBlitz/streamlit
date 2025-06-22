@@ -19,12 +19,15 @@ import React, {
   ReactElement,
   ReactNode,
   useEffect,
+  useMemo,
   useState,
 } from "react"
 
 import AlertElement from "~lib/components/elements/AlertElement"
 import { Kind } from "~lib/components/shared/AlertContainer"
 import { WidgetStateManager } from "~lib/WidgetStateManager"
+import { FormsContext } from "~lib/components/core/FormsContext"
+import { useRequiredContext } from "~lib/hooks/useRequiredContext"
 
 import { StyledErrorContainer, StyledForm } from "./styled-components"
 
@@ -32,7 +35,6 @@ export interface Props {
   formId: string
   clearOnSubmit: boolean
   enterToSubmit: boolean
-  hasSubmitButton: boolean
   scriptNotRunning: boolean
   children?: ReactNode
   widgetMgr: WidgetStateManager
@@ -51,13 +53,20 @@ function Form(props: Props): ReactElement {
   const {
     formId,
     widgetMgr,
-    hasSubmitButton,
     children,
     scriptNotRunning,
     clearOnSubmit,
     enterToSubmit,
     border,
   } = props
+
+  const { formsData } = useRequiredContext(FormsContext)
+
+  // Get hasSubmitButton from formsData, memoized to only recalculate when formsData changes
+  const hasSubmitButton = useMemo(() => {
+    const submitButtons = formsData.submitButtons.get(formId)
+    return submitButtons !== undefined && submitButtons.length > 0
+  }, [formsData, formId])
 
   // Tell WidgetStateManager if this form is `clearOnSubmit` and `enterToSubmit`
   useEffect(() => {
@@ -72,11 +81,14 @@ function Form(props: Props): ReactElement {
   // haven't seen yet.)
   const [showWarning, setShowWarning] = useState(false)
 
-  if (hasSubmitButton && showWarning) {
-    setShowWarning(false)
-  } else if (!hasSubmitButton && !showWarning && scriptNotRunning) {
-    setShowWarning(true)
-  }
+  // Update showWarning state when hasSubmitButton or scriptNotRunning changes
+  useEffect(() => {
+    if (hasSubmitButton && showWarning) {
+      setShowWarning(false)
+    } else if (!hasSubmitButton && !showWarning && scriptNotRunning) {
+      setShowWarning(true)
+    }
+  }, [hasSubmitButton, scriptNotRunning, showWarning])
 
   let submitWarning: ReactElement | undefined
   if (showWarning) {
