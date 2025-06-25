@@ -109,6 +109,39 @@ def test_correctly_handles_first_chat_message(
     )
 
 
+def test_dimensions_are_correctly_applied(
+    app: Page, assert_snapshot: ImageCompareFunction
+):
+    """Test that st.container dimensions are correctly applied."""
+
+    # The chat messages have vertical blocks as well so these are offset.
+    container_elements = app.get_by_test_id("stVerticalBlock")
+    fixed_width_container = container_elements.nth(26)
+    fixed_width_container.scroll_into_view_if_needed()
+    assert_snapshot(fixed_width_container, name="st_container-fixed_width")
+
+    stretch_width_container = container_elements.nth(27)
+    stretch_width_container.scroll_into_view_if_needed()
+    assert_snapshot(stretch_width_container, name="st_container-stretch_width")
+
+    content_width_container = container_elements.nth(28)
+    content_width_container.scroll_into_view_if_needed()
+    assert_snapshot(content_width_container, name="st_container-content_width")
+
+    fixed_height_container = container_elements.nth(29)
+    fixed_height_container.scroll_into_view_if_needed()
+    assert_snapshot(
+        fixed_height_container, name="st_container-stretch_and_fixed_height"
+    )
+
+    # number 30 is nested in 29 so skip to 31 for the next snapshot.
+    stretch_height_container = container_elements.nth(31)
+    stretch_height_container.scroll_into_view_if_needed()
+    assert_snapshot(
+        stretch_height_container, name="st_container-content_and_fixed_height"
+    )
+
+
 def test_check_top_level_class(app: Page):
     """Check that the top level class is correctly set."""
     check_top_level_class(app, "stVerticalBlock")
