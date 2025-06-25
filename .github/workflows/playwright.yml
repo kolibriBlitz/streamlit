@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  playwright-e2e-tests:
-    runs-on: ubuntu-latest-32-cores
+  prepare-playwright-env:
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     defaults:
@@ -47,14 +47,138 @@ jobs:
         run: python -m playwright install --with-deps
       - name: Run make frontend-build-with-profiler
         run: make frontend-build-with-profiler
+
+      #---------------------------------------------------------------------
+      # Package the prepared environment so that the shards can reuse it.
+      # We archive everything into a single tarball to avoid file-count
+      # limits and hidden-file issues with the upload-artifact action.
+      #---------------------------------------------------------------------
+      - name: Copy Playwright browsers into workspace for packaging
+        run: |
+          mkdir -p playwright-browsers
+          cp -r ~/.cache/ms-playwright playwright-browsers/
+
+      - name: Create environment archive
+        run: |
+          tar -czf prepared-env.tar.gz \
+            venv \
+            playwright-browsers \
+            frontend/app/build \
+            frontend/app/dist || true
+
+      - name: Upload prepared environment
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright_prepared_env
+          path: prepared-env.tar.gz
+          retention-days: 1
+
+  playwright-e2e-tests:
+    needs: prepare-playwright-env
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # shardId: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        # numShards: [16]
+        # This is just for debugging purposes
+        shardId: [0]
+        numShards: [600]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Streamlit code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+          submodules: "recursive"
+          fetch-depth: 2
+      - name: Set Python version vars
+        uses: ./.github/actions/build_info
+      - name: Set up Python ${{ env.PYTHON_MAX_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ env.PYTHON_MAX_VERSION }}"
+      - name: Download prepared environment
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright_prepared_env
+          path: ./env_artifacts
+
+      - name: Extract environment archive
+        run: |
+          tar -xzf env_artifacts/prepared-env.tar.gz
+
+          # Restore Playwright browsers cache
+          mkdir -p ~/.cache
+          mv playwright-browsers/ms-playwright ~/.cache/ms-playwright
+
+      - name: Activate virtual env
+        run: |
+          echo "VIRTUAL_ENV=${{ github.workspace }}/venv" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/venv/bin" >> $GITHUB_PATH
+
       - name: Run playwright tests
         run: |
           cd e2e_playwright
           rm -rf ./test-results
-          pytest --ignore ./custom_components --browser webkit --browser chromium --browser firefox -n auto --reruns 1 -m "not performance"
+          pytest -vv -s \
+            -o log_cli=true \
+            --log-cli-level=INFO \
+            --ignore ./custom_components \
+            --browser webkit --browser chromium --browser firefox \
+            -n auto --reruns 1 \
+            -m "not performance" \
+            --shard-id=${{ matrix.shardId }} --num-shards=${{ matrix.numShards }}
+
       - name: Upload failed test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright_test_results
           path: e2e_playwright/test-results
+
+      - name: Upload blob report to GitHub Actions Artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardId }}
+          path: blob-report
+          retention-days: 1
+
+  merge-reports:
+    # Merge reports after playwright-e2e-tests, even if some shards have failed
+    needs: [playwright-e2e-tests]
+    if: ${{ !cancelled() }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download blob reports from GitHub Actions Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge into HTML Report
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-report--attempt-${{ github.run_attempt }}
+          path: playwright-report
+          retention-days: 14
