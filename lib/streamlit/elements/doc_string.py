@@ -28,9 +28,6 @@ from streamlit.elements.lib.layout_utils import LayoutConfig, validate_width
 from streamlit.proto.DocString_pb2 import DocString as DocStringProto
 from streamlit.proto.DocString_pb2 import Member as MemberProto
 from streamlit.runtime.metrics_util import gather_metrics
-from streamlit.runtime.scriptrunner.script_runner import (
-    __file__ as SCRIPTRUNNER_FILENAME,  # noqa: N812
-)
 from streamlit.runtime.secrets import Secrets
 from streamlit.string_util import is_mem_address_str
 
@@ -326,49 +323,48 @@ _NEWLINES = re.compile(r"[\n\r]+")
 
 
 def _get_current_line_of_code_as_str() -> str | None:
-    scriptrunner_frame = _get_scriptrunner_frame()
+    """
+    Get the line of code where `st.help(...)` was called, as a single string.
 
-    if scriptrunner_frame is None:
-        # If there's no ScriptRunner frame, something weird is going on. This
-        # can happen when the script is executed with `python myscript.py`.
-        # Either way, let's bail out nicely just in case there's some valid
-        # edge case where this is OK.
-        return None
-
-    code_context = scriptrunner_frame.code_context
+    Returns
+    -------
+    str or None
+        The source line that invoked `st.help(...)`, with newlines stripped,
+        or None if it can't be determined.
+    """
+    code_context = _get_help_call_code_context()
 
     if not code_context:
-        # Sometimes a frame has no code_context. This can happen inside certain exec() calls, for
-        # example. If this happens, we can't determine the variable name. Just return.
-        # For the background on why exec() doesn't produce code_context, see
-        # https://stackoverflow.com/a/12072941
         return None
 
     code_as_string = "".join(code_context)
     return re.sub(_NEWLINES, "", code_as_string.strip())
 
 
-def _get_scriptrunner_frame() -> inspect.FrameInfo | None:
-    prev_frame = None
-    scriptrunner_frame = None
+def _get_help_call_code_context() -> list[str] | None:
+    """
+    Search the call stack for the first frame where a method-style call to `help(...)` is made,
+    such as `st.help(...)`, `streamlit.help(...)`, or `foo.help(...)`, and return its code context.
 
-    # Look back in call stack to get the variable name passed into st.help().
-    # The frame *before* the ScriptRunner frame is the correct one.
-    # IMPORTANT: This will change if we refactor the code. But hopefully our tests will catch the
-    # issue and we'll fix it before it lands upstream!
+    This is used to extract the line of code where the user called a help function,
+    for display in Streamlit's documentation widget.
+
+    Returns
+    -------
+    list[str] or None
+        The code context (i.e., source line) where the `help(...)` method was invoked,
+        or None if not found or not accessible.
+    """
     for frame in inspect.stack():
-        # Check if this is running inside a funny "exec()" block that won't provide the info we
-        # need. If so, just quit.
-        if frame.code_context is None:
-            return None
+        context = frame.code_context
+        if not context:
+            continue
 
-        if frame.filename == SCRIPTRUNNER_FILENAME:
-            scriptrunner_frame = prev_frame
-            break
+        # Search for the call to help in the code context
+        if re.search(r"\b[\w\.]*help\s*\(", context[0]):
+            return context
 
-        prev_frame = frame
-
-    return scriptrunner_frame
+    return None
 
 
 def _is_stcommand(tree: Any, command_name: str) -> bool:

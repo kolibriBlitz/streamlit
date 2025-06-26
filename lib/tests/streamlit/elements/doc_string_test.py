@@ -57,8 +57,7 @@ class StHelpAPITest(DeltaGeneratorTestCase):
 
     def test_st_help(self):
         """Test st.help."""
-        with patch_varname_getter():
-            st.help(os.chdir)
+        st.help(os.chdir)
 
         el = self.get_delta_from_queue().new_element.doc_string
         assert el.name == "os.chdir"
