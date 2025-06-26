@@ -20,6 +20,7 @@ from e2e_playwright.shared.app_utils import (
     check_top_level_class,
     click_checkbox,
     click_toggle,
+    get_element_by_key,
 )
 
 
@@ -322,3 +323,8 @@ def test_forms_in_container(app: Page, assert_snapshot: ImageCompareFunction):
     height_container = app.get_by_test_id("stVerticalBlock").nth(20)
     height_container.scroll_into_view_if_needed()
     assert_snapshot(height_container, name="st_form-height_container")
+
+
+def test_custom_css_class_via_key(app: Page):
+    """Test that the form has a custom css class via the key argument."""
+    expect(get_element_by_key(app, "form_1")).to_be_visible()
