@@ -54,3 +54,43 @@ class ToastTest(DeltaGeneratorTestCase):
             'The value "invalid" is not a valid emoji. Shortcodes '
             "are not allowed, please use a single character instead."
         )
+
+    def test_toast_from_dialog(self):
+        """Test that toasts work correctly when called from within a dialog."""
+
+        @st.dialog("Test Dialog")
+        def my_dialog():
+            st.toast("Toast from dialog")
+
+        # Call the dialog function to trigger the toast
+        my_dialog()
+
+        # The toast should be enqueued to the main container
+        # Try to get the toast directly first
+        try:
+            # Try direct approach first
+            toast = self.get_delta_from_queue().new_element.toast
+            assert toast.body == "Toast from dialog"
+            assert toast.icon == ""
+            return  # Test passed
+        except (AttributeError, AssertionError):
+            # If direct approach fails, search through all messages
+            pass
+
+        # Fallback: search through all messages
+        messages = self.get_all_messages_from_queue()
+
+        # Find the toast message
+        toast_found = False
+        for _i, msg in enumerate(messages):
+            if hasattr(msg, "delta") and hasattr(msg.delta, "new_element"):  # noqa: SIM102
+                if hasattr(msg.delta.new_element, "toast"):
+                    c = msg.delta.new_element.toast
+                    assert c.body == "Toast from dialog"
+                    assert c.icon == ""
+                    toast_found = True
+                    break
+
+        assert toast_found, (
+            f"Toast message was not found in the queue. Found {len(messages)} messages."
+        )
