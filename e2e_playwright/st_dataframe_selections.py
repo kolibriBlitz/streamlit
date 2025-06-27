@@ -190,3 +190,52 @@ selection = st.dataframe(
     use_container_width=False,
 )
 st.write("No selection on index column:", str(selection))
+
+st.header("Cell selections:")
+st.subheader("single-cell select")
+selection = st.dataframe(
+    df,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode="single-cell",
+    column_config=column_config,
+    use_container_width=False,
+    key="single_cell_select",
+)
+st.write("Dataframe single-cell selection:", str(selection))
+
+st.subheader("multi-cell select")
+selection = st.dataframe(
+    df,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode="multi-cell",
+    column_config=column_config,
+    use_container_width=False,
+    key="multi_cell_select",
+)
+st.write("Dataframe multi-cell selection:", str(selection))
+
+st.subheader("multi-row & single-cell select")
+selection = st.dataframe(
+    df,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode=["multi-row", "single-cell"],
+    column_config=column_config,
+    use_container_width=False,
+    key="multi_row_single_cell_select",
+)
+st.write("Dataframe multi-row & single-cell selection:", str(selection))
+
+st.subheader("multi-row, multi-column & multi-cell select")
+selection = st.dataframe(
+    df,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode=["multi-row", "multi-column", "multi-cell"],
+    column_config=column_config,
+    use_container_width=False,
+    key="multi_row_multi_column_multi_cell_select",
+)
+st.write("Dataframe multi-row, multi-column & multi-cell selection:", str(selection))

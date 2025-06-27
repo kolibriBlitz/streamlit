@@ -64,14 +64,26 @@ if TYPE_CHECKING:
 
 
 SelectionMode: TypeAlias = Literal[
-    "single-row", "multi-row", "single-column", "multi-column"
+    "single-row",
+    "multi-row",
+    "single-column",
+    "multi-column",
+    "single-cell",
+    "multi-cell",
 ]
 _SELECTION_MODES: Final[set[SelectionMode]] = {
     "single-row",
     "multi-row",
     "single-column",
     "multi-column",
+    "single-cell",
+    "multi-cell",
 }
+
+
+class DataframeCellPosition(TypedDict):
+    row: int
+    column: str
 
 
 class DataframeSelectionState(TypedDict, total=False):
@@ -97,6 +109,9 @@ class DataframeSelectionState(TypedDict, total=False):
         or ``.iat[]``.
     columns : list[str]
         The selected columns, identified by their names.
+    cells : list[DataframeCellPosition]
+        The selected cells, identified by their row integer position and
+        column name.
 
     Example
     -------
@@ -130,6 +145,7 @@ class DataframeSelectionState(TypedDict, total=False):
 
     rows: list[int]
     columns: list[str]
+    cells: list[DataframeCellPosition]
 
 
 class DataframeState(TypedDict, total=False):
@@ -165,6 +181,7 @@ class DataframeSelectionSerde:
             "selection": {
                 "rows": [],
                 "columns": [],
+                "cells": [],
             },
         }
         selection_state: DataframeState = (
@@ -173,6 +190,12 @@ class DataframeSelectionSerde:
 
         if "selection" not in selection_state:
             selection_state = empty_selection_state
+        if "rows" not in selection_state["selection"]:
+            selection_state["selection"]["rows"] = []
+        if "columns" not in selection_state["selection"]:
+            selection_state["selection"]["columns"] = []
+        if "cells" not in selection_state["selection"]:
+            selection_state["selection"]["cells"] = []
 
         return cast("DataframeState", AttributeDictionary(selection_state))
 
@@ -207,6 +230,11 @@ def parse_selection_mode(
             "Only one of `single-column` or `multi-column` can be selected as selection mode."
         )
 
+    if selection_mode_set.issuperset({"single-cell", "multi-cell"}):
+        raise StreamlitAPIException(
+            "Only one of `single-cell` or `multi-cell` can be selected as selection mode."
+        )
+
     parsed_selection_modes = []
     for mode in selection_mode_set:
         if mode == "single-row":
@@ -217,6 +245,10 @@ def parse_selection_mode(
             parsed_selection_modes.append(ArrowProto.SelectionMode.SINGLE_COLUMN)
         elif mode == "multi-column":
             parsed_selection_modes.append(ArrowProto.SelectionMode.MULTI_COLUMN)
+        elif mode == "single-cell":
+            parsed_selection_modes.append(ArrowProto.SelectionMode.SINGLE_CELL)
+        elif mode == "multi-cell":
+            parsed_selection_modes.append(ArrowProto.SelectionMode.MULTI_CELL)
     return set(parsed_selection_modes)
 
 
@@ -397,8 +429,8 @@ class ArrowMixin:
               input widget.
 
             - ``"rerun"``: Streamlit will rerun the app when the user selects
-              rows or columns in the dataframe. In this case, ``st.dataframe``
-              will return the selection data as a dictionary.
+              rows, columns, or cells in the dataframe. In this case,
+              ``st.dataframe`` will return the selection data as a dictionary.
 
             - A ``callable``: Streamlit will rerun the app and execute the
               ``callable`` as a callback function before the rest of the app.
@@ -406,7 +438,7 @@ class ArrowMixin:
               as a dictionary.
 
         selection_mode : "single-row", "multi-row", "single-column", \
-            "multi-column", or Iterable of these
+            "multi-column", "single-cell", "multi-cell", or Iterable of these
             The types of selections Streamlit should allow when selections are
             enabled with ``on_select``. This can be one of the following:
 
@@ -414,10 +446,16 @@ class ArrowMixin:
             - "single-row": Only one row can be selected at a time.
             - "multi-column": Multiple columns can be selected at a time.
             - "single-column": Only one column can be selected at a time.
+            - "single-cell": Only one cell can be selected at a time.
+            - "multi-cell": A rectangular range of cells can be selected.
             - An ``Iterable`` of the above options: The table will allow
-              selection based on the modes specified.
+              selection based on the modes specified (e.g., ``["multi-row", "single-cell"]``).
 
             When column selections are enabled, column sorting is disabled.
+            When multiple selection types are active (e.g., row and cell),
+            making a new selection of one type (e.g., clicking a cell) may
+            clear selections of other types (e.g., selected rows) due to the
+            underlying grid's behavior.
 
         row_height : int or None
             The height of each row in the dataframe in pixels. If ``row_height``
@@ -426,13 +464,20 @@ class ArrowMixin:
 
         Returns
         -------
-        element or dict
+        element or DataframeState (dict)
             If ``on_select`` is ``"ignore"`` (default), this command returns an
             internal placeholder for the dataframe element that can be used
             with the ``.add_rows()`` method. Otherwise, this command returns a
             dictionary-like object that supports both key and attribute
             notation. The attributes are described by the ``DataframeState``
-            dictionary schema.
+            dictionary schema:
+            - ``selection``: A dictionary containing the selection details.
+                - ``rows``: A list of original integer indices of selected rows.
+                - ``columns``: A list of string names of selected columns.
+                - ``cells``: A list of dictionaries, where each dictionary
+                  represents a selected cell and has ``row`` (original integer
+                  index) and ``column`` (string name) keys. Empty if no cells
+                  are selected or cell selection is not active.
 
         Examples
         --------

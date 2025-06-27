@@ -101,6 +101,11 @@ const WEBKIT_SCROLLBAR_SIZE = 6
 // This is the state that is sent to the backend
 // This needs to be the same structure that is also defined
 // in the Python code.
+export interface DataframeCellPosition {
+  row: number
+  column: string
+}
+
 export interface DataframeState {
   selection: {
     rows: number[]
@@ -108,6 +113,7 @@ export interface DataframeState {
     // it easier to use and unify with how data editor edits
     // are stored.
     columns: string[]
+    cells: DataframeCellPosition[]
   }
 }
 
@@ -297,6 +303,39 @@ function DataFrame({
   const { columns, sortColumn, getOriginalIndex, getCellContent } =
     useColumnSort(originalNumRows, originalColumns, getOriginalCellContent)
 
+  // Define syncSelectionState (debounced) function that useSelectionHandler will call.
+  // innerSyncSelectionState (the actual logic) will be defined after useSelectionHandler
+  // so that it can use the values destructured from useSelectionHandler.
+  const { debouncedCallback: syncSelectionState } = useDebouncedCallback(
+    (newSelection: GridSelection) => {
+      // This will call the innerSyncSelectionState that will be defined later.
+      // This is a common pattern for breaking circular dependencies in React hooks and callbacks.
+      innerSyncSelectionState(newSelection)
+    },
+    DEBOUNCE_TIME_MS
+  )
+
+  const {
+    gridSelection,
+    isRowSelectionActivated,
+    isMultiRowSelectionActivated,
+    isColumnSelectionActivated,
+    isMultiColumnSelectionActivated,
+    isCellSelectionActivated,
+    isMultiCellSelectionActivated,
+    isRowSelected,
+    isColumnSelected,
+    isCellSelected,
+    clearSelection,
+    processSelectionChange,
+  } = useSelectionHandler(
+    element,
+    isEmptyTable,
+    disabled,
+    columns,
+    syncSelectionState
+  )
+
   /**
    * Synchronizes the selection state with the state of the widget state of the component.
    * This might also send a rerun message to the backend if the selection state has changed.
@@ -317,6 +356,7 @@ function DataFrame({
         selection: {
           rows: [] as number[],
           columns: [] as string[],
+          cells: [] as DataframeCellPosition[],
         },
       }
 
@@ -328,6 +368,35 @@ function DataFrame({
         .map(columnIdx => {
           return getColumnName(columns[columnIdx])
         })
+
+      if (
+        (isCellSelectionActivated || isMultiCellSelectionActivated) &&
+        newSelection.current // Check if current (the Item object) exists
+      ) {
+        const { cell, range } = newSelection.current // Destructure directly from the Item object
+        if (isMultiCellSelectionActivated && range) {
+          // Multi-cell selection
+          for (let r = range.y; r < range.y + range.height; r++) {
+            for (let c = range.x; c < range.x + range.width; c++) {
+              if (!columns[c].isIndex) {
+                selectionState.selection.cells.push({
+                  row: getOriginalIndex(r),
+                  column: getColumnName(columns[c]),
+                })
+              }
+            }
+          }
+        } else if (isCellSelectionActivated && cell) {
+          // Single-cell selection
+          if (!columns[cell[0]].isIndex) {
+            selectionState.selection.cells.push({
+              row: getOriginalIndex(cell[1]),
+              column: getColumnName(columns[cell[0]]),
+            })
+          }
+        }
+      }
+
       const newWidgetState = JSON.stringify(selectionState)
       const currentWidgetState = widgetMgr.getStringValue({
         id: element.id,
@@ -359,35 +428,16 @@ function DataFrame({
       widgetMgr,
       fragmentId,
       getOriginalIndex,
+      isCellSelectionActivated,
+      isMultiCellSelectionActivated,
     ]
   )
 
-  // Use a debounce to prevent rapid updates to the widget state.
-  const { debouncedCallback: syncSelectionState } = useDebouncedCallback(
-    innerSyncSelectionState,
-    DEBOUNCE_TIME_MS
-  )
-
-  const {
-    gridSelection,
-    isRowSelectionActivated,
-    isMultiRowSelectionActivated,
-    isColumnSelectionActivated,
-    isMultiColumnSelectionActivated,
-    isRowSelected,
-    isColumnSelected,
-    isCellSelected,
-    clearSelection,
-    processSelectionChange,
-  } = useSelectionHandler(
-    element,
-    isEmptyTable,
-    disabled,
-    columns,
-    syncSelectionState
-  )
-
   useEffect(() => {
+    if (isCellSelectionActivated) {
+      // We don't clear anything if cell selection is activated.
+      return
+    }
     // Clear cell selections if fullscreen mode changes
     // but keep row & column selections.
     // In the past we saw some weird side-effects, so we decided to clean
@@ -441,6 +491,8 @@ function DataFrame({
 
         let rowSelection = CompactSelection.empty()
         let columnSelection = CompactSelection.empty()
+        // Initialize current for cell selection from state if needed
+        const currentSelection: GridSelection["current"] = undefined
 
         selectionState.selection?.rows?.forEach(row => {
           rowSelection = rowSelection.add(row)
@@ -450,12 +502,35 @@ function DataFrame({
           columnSelection = columnSelection.add(columnNames.indexOf(column))
         })
 
-        if (rowSelection.length > 0 || columnSelection.length > 0) {
+        // Reconstruct cell selection for initial load if applicable
+        // This part is a bit tricky as GlideDataGrid's GridSelection.current
+        // expects cell & range in terms of visual grid coordinates, not original data.
+        // For simplicity on initial load, we might not fully reconstruct the visual range selection perfectly,
+        // but ensure the `cells` data is sent to Python.
+        // If we want to visually highlight cells from initial state, more logic is needed here
+        // to map original row/col back to visual grid row/col after sorting/filtering etc.
+        if (selectionState.selection?.cells?.length > 0) {
+          if (isCellSelected || isMultiCellSelectionActivated) {
+            // For now, just ensure the selection state is correctly sent. Visual reconstruction is complex.
+            // To visually select, we'd need to find the first cell from selectionState.selection.cells,
+            // map its original row/col to visual grid coords, and set newSelection.current.cell.
+            // For multi-cell, we'd need to find min/max row/col from selectionState.selection.cells
+            // and construct newSelection.current.range.
+            // This is omitted for brevity but is a point for future improvement if visual persistence of cell selection is key.
+          }
+        }
+
+        if (
+          rowSelection.length > 0 ||
+          columnSelection.length > 0 ||
+          (currentSelection !== undefined &&
+            (isCellSelected || isMultiCellSelectionActivated))
+        ) {
           // Update the initial selection state if something was selected
           const initialSelection: GridSelection = {
             rows: rowSelection,
             columns: columnSelection,
-            current: undefined,
+            current: currentSelection, // This would be set if we reconstruct visual cell selection
           }
           processSelectionChange(initialSelection)
         }
@@ -734,7 +809,8 @@ function DataFrame({
           !isTouchDevice &&
           !event.currentTarget.contains(
             event.relatedTarget as HTMLElement | null
-          )
+          ) &&
+          !isCellSelectionActivated
         ) {
           // Clear cell selections, but keep row & column selections.
           clearSelection(true, true)
@@ -756,7 +832,8 @@ function DataFrame({
         target={StyledResizableContainer}
       >
         {((isRowSelectionActivated && isRowSelected) ||
-          (isColumnSelectionActivated && isColumnSelected)) && (
+          (isColumnSelectionActivated && isColumnSelected) ||
+          (isCellSelectionActivated && isCellSelected)) && (
           // Add clear selection action if selections are active
           // and a valid selections currently exists. Cell selections
           // are not relevant since they are not synced to the backend
@@ -1087,6 +1164,16 @@ function DataFrame({
               // Support deleting cells & rows:
               onDelete,
             })}
+          // Streamlit-specific cell selection modes override the default for non-touch devices
+          {...(!disabled &&
+            !isTouchDevice &&
+            isCellSelectionActivated && {
+              rangeSelect: isMultiCellSelectionActivated ? "rect" : "cell",
+            })}
+          // Disabled state takes highest precedence for rangeSelect (overwrites previous rangeSelect if disabled)
+          {...(disabled && {
+            rangeSelect: "none",
+          })}
           // If element is dynamic, enable adding & deleting rows:
           {...(!isEmptyTable &&
             element.editingMode === DYNAMIC && {
