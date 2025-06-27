@@ -282,3 +282,52 @@ data = pd.DataFrame(
 )
 
 st.table(data)
+
+st.header("Hide Headers and Index")
+
+st.subheader("Regular table")
+df = pd.DataFrame(
+    np.random.randn(5, 3),
+    columns=["Column A", "Column B", "Column C"],
+    index=["Row 1", "Row 2", "Row 3", "Row 4", "Row 5"],
+)
+st.table(df)
+
+st.subheader("Table with hidden headers")
+st.table(df, hide_headers=True)
+
+st.subheader("Table with hidden index")
+st.table(df, hide_index=True)
+
+st.subheader("Table with both hidden headers and index")
+st.table(df, hide_headers=True, hide_index=True)
+
+st.subheader("MultiIndex table with hidden index")
+df_multi = pd.DataFrame(
+    np.random.randn(6, 3),
+    columns=["A", "B", "C"],
+    index=pd.MultiIndex.from_tuples(
+        [
+            ("Group 1", "Item 1"),
+            ("Group 1", "Item 2"),
+            ("Group 2", "Item 1"),
+            ("Group 2", "Item 2"),
+            ("Group 3", "Item 1"),
+            ("Group 3", "Item 2"),
+        ]
+    ),
+)
+st.table(df_multi, hide_index=True)
+
+st.subheader("Styled table with hidden headers")
+styled_df = df.style.highlight_max(axis=0)
+st.table(styled_df, hide_headers=True)
+
+st.subheader("Markdown table with hidden index")
+md_df = pd.DataFrame(
+    {
+        "Feature": ["**Bold**", "*Italic*", "`Code`"],
+        "Description": ["Strong emphasis", "Emphasis", "Inline code"],
+    }
+)
+st.table(md_df, hide_index=True)

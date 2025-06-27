@@ -18,6 +18,8 @@ import React, { memo, ReactElement } from "react"
 
 import range from "lodash/range"
 
+import { IArrow } from "@streamlit/protobuf"
+
 import { Quiver } from "~lib/dataframes/Quiver"
 import {
   DataFrameCellType,
@@ -42,13 +44,22 @@ import {
 
 export interface TableProps {
   element: Quiver
+  proto?: IArrow
 }
 
 export function ArrowTable(props: Readonly<TableProps>): ReactElement {
   const table = props.element
   const { cssId, cssStyles, caption } = table.styler ?? {}
-  const { numHeaderRows, numDataRows, numColumns } = table.dimensions
+  const { numHeaderRows, numDataRows, numColumns, numIndexColumns } =
+    table.dimensions
   const dataRowIndices = range(numDataRows)
+
+  // Get hide settings from proto, defaulting to false
+  const hideHeaders = props.proto?.hideHeaders ?? false
+  const hideIndex = props.proto?.hideIndex ?? false
+
+  // Calculate the actual number of columns to display
+  const displayColumns = hideIndex ? numColumns - numIndexColumns : numColumns
 
   return (
     <StyledTableContainer className="stTable" data-testid="stTable">
@@ -57,20 +68,22 @@ export function ArrowTable(props: Readonly<TableProps>): ReactElement {
       the entire table when scrolling horizontally. See also `styled-components.ts`. */}
       <StyledTableBorder>
         <StyledTable id={cssId} data-testid="stTableStyledTable">
-          {numHeaderRows > 0 && generateTableHeader(table)}
+          {numHeaderRows > 0 &&
+            !hideHeaders &&
+            generateTableHeader(table, hideIndex)}
           <tbody>
             {dataRowIndices.length === 0 ? (
               <tr>
                 <StyledEmptyTableCell
                   data-testid="stTableStyledEmptyTableCell"
-                  colSpan={numColumns || 1}
+                  colSpan={displayColumns || 1}
                 >
                   empty
                 </StyledEmptyTableCell>
               </tr>
             ) : (
               dataRowIndices.map(rowIndex =>
-                generateTableRow(table, rowIndex, numColumns)
+                generateTableRow(table, rowIndex, numColumns, hideIndex)
               )
             )}
           </tbody>
@@ -91,27 +104,33 @@ export function ArrowTable(props: Readonly<TableProps>): ReactElement {
 /**
  * Generate the table header rows from a Quiver object.
  */
-function generateTableHeader(table: Quiver): ReactElement {
+function generateTableHeader(table: Quiver, hideIndex: boolean): ReactElement {
   return (
     <thead>
       {getStyledHeaders(table).map((headerRow, rowIndex) => (
         // TODO: Update to match React best practices
         // eslint-disable-next-line @eslint-react/no-array-index-key
         <tr key={rowIndex}>
-          {headerRow.map((header, colIndex) => (
-            <StyledTableCellHeader
-              // TODO: Update to match React best practices
-              // eslint-disable-next-line @eslint-react/no-array-index-key
-              key={colIndex}
-              className={header.cssClass}
-              scope="col"
-            >
-              <StreamlitMarkdown
-                source={header.name || "\u00A0"}
-                allowHTML={false}
-              />
-            </StyledTableCellHeader>
-          ))}
+          {headerRow.map((header, colIndex) => {
+            // Skip index columns if hideIndex is true
+            if (hideIndex && colIndex < table.dimensions.numIndexColumns) {
+              return null
+            }
+            return (
+              <StyledTableCellHeader
+                // TODO: Update to match React best practices
+                // eslint-disable-next-line @eslint-react/no-array-index-key
+                key={colIndex}
+                className={header.cssClass}
+                scope="col"
+              >
+                <StreamlitMarkdown
+                  source={header.name || "\u00A0"}
+                  allowHTML={false}
+                />
+              </StyledTableCellHeader>
+            )
+          })}
         </tr>
       ))}
     </thead>
@@ -124,13 +143,18 @@ function generateTableHeader(table: Quiver): ReactElement {
 function generateTableRow(
   table: Quiver,
   rowIndex: number,
-  columns: number
+  columns: number,
+  hideIndex: boolean
 ): ReactElement {
   return (
     <tr key={rowIndex}>
-      {range(columns).map(columnIndex =>
-        generateTableCell(table, rowIndex, columnIndex)
-      )}
+      {range(columns).map(columnIndex => {
+        // Skip index columns if hideIndex is true
+        if (hideIndex && columnIndex < table.dimensions.numIndexColumns) {
+          return null
+        }
+        return generateTableCell(table, rowIndex, columnIndex)
+      })}
     </tr>
   )
 }

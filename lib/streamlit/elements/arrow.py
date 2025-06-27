@@ -649,7 +649,9 @@ class ArrowMixin:
         return self.dg._enqueue("arrow_data_frame", proto)
 
     @gather_metrics("table")
-    def table(self, data: Data = None) -> DeltaGenerator:
+    def table(
+        self, data: Data = None, *, hide_headers: bool = False, hide_index: bool = False
+    ) -> DeltaGenerator:
         """Display a static table.
 
         While ``st.dataframe`` is geared towards large datasets and interactive
@@ -672,6 +674,12 @@ class ArrowMixin:
 
             .. |st.markdown| replace:: ``st.markdown``
             .. _st.markdown: https://docs.streamlit.io/develop/api-reference/text/st.markdown
+
+        hide_headers : bool
+            Whether to hide the table's column headers. Defaults to ``False``.
+
+        hide_index : bool
+            Whether to hide the table's index column(s). Defaults to ``False``.
 
         Examples
         --------
@@ -730,6 +738,8 @@ class ArrowMixin:
 
         proto = ArrowProto()
         marshall(proto, data, default_uuid)
+        proto.hide_headers = hide_headers
+        proto.hide_index = hide_index
         return self.dg._enqueue("arrow_table", proto)
 
     @gather_metrics("add_rows")

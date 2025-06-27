@@ -125,3 +125,54 @@ class ArrowTest(DeltaGeneratorTestCase):
 
             st.table(df)
             convert_anything_to_df.assert_called_once()
+
+    def test_hide_headers_default(self):
+        """Test that hide_headers defaults to False."""
+        df = mock_data_frame()
+        st.table(df)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_headers is False
+
+    def test_hide_headers_true(self):
+        """Test that hide_headers=True sets the proto field correctly."""
+        df = mock_data_frame()
+        st.table(df, hide_headers=True)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_headers is True
+
+    def test_hide_index_default(self):
+        """Test that hide_index defaults to False."""
+        df = mock_data_frame()
+        st.table(df)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_index is False
+
+    def test_hide_index_true(self):
+        """Test that hide_index=True sets the proto field correctly."""
+        df = mock_data_frame()
+        st.table(df, hide_index=True)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_index is True
+
+    def test_hide_both_headers_and_index(self):
+        """Test that both hide_headers and hide_index can be set together."""
+        df = mock_data_frame()
+        st.table(df, hide_headers=True, hide_index=True)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_headers is True
+        assert proto.hide_index is True
+
+    def test_hide_params_with_styler(self):
+        """Test that hide parameters work with pandas.Styler."""
+        df = mock_data_frame()
+        styler = df.style
+        st.table(styler, hide_headers=True, hide_index=True)
+
+        proto = self.get_delta_from_queue().new_element.arrow_table
+        assert proto.hide_headers is True
+        assert proto.hide_index is True

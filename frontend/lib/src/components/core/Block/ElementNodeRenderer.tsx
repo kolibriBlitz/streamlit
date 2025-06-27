@@ -208,8 +208,16 @@ const RawElementNodeRenderer = (
       )
     }
 
-    case "arrowTable":
-      return <ArrowTable element={node.quiverElement} {...elementProps} />
+    case "arrowTable": {
+      const arrowProto = node.element.arrowTable as ArrowProto
+      return (
+        <ArrowTable
+          element={node.quiverElement}
+          proto={arrowProto}
+          {...elementProps}
+        />
+      )
+    }
 
     case "audio":
       return (

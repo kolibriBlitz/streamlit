@@ -46,6 +46,10 @@ message Arrow {
   repeated SelectionMode selection_mode = 12;
   // Row height in pixels
   optional uint32 row_height = 13;
+  // Hide column headers
+  bool hide_headers = 14;
+  // Hide index column(s)
+  bool hide_index = 15;
 
   // Available editing modes:
   enum EditingMode {
