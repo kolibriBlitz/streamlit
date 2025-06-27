@@ -33,7 +33,9 @@ export const DynamicButtonLabel = ({
   iconSize,
   useSmallerFont = false,
 }: DynamicButtonLabelProps): React.ReactElement | null => {
-  const isMaterialIcon = icon?.startsWith(":material")
+  const isMaterialIcon =
+    icon?.startsWith(":material") ||
+    icon?.match(/^:[^[]+\[:material\/[^\]]+\]$/)
   const iconMargin = isMaterialIcon ? "0 sm 0 0" : "0 md 0 0"
   // Material icons need to be larger to render similar size of emojis, emojis need addtl margin
   const dynamicIconSize = iconSize ?? (isMaterialIcon ? "lg" : "base")

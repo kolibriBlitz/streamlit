@@ -15,12 +15,14 @@
  */
 
 import React, { Suspense } from "react"
+import { useTheme } from "@emotion/react"
 
-import { IconSize } from "~lib/theme"
+import { EmotionTheme, getMarkdownTextColors, IconSize } from "~lib/theme"
 
 import { EmojiIcon } from "./Icon"
 import MaterialFontIcon from "./Material/MaterialFontIcon"
 import { StyledDynamicIcon, StyledImageIcon } from "./styled-components"
+import { hasLightBackgroundColor } from "~lib/theme"
 
 interface IconPackEntry {
   pack: string
@@ -37,6 +39,20 @@ export function parseIconPackEntry(iconName: string): IconPackEntry {
   const iconPack = matchResult[1]
   const iconNameInPack = matchResult[2]
   return { pack: iconPack, icon: iconNameInPack }
+}
+
+/**
+ * Parses the icon value to extract color and icon name.
+ */
+function parseColorAndIcon(iconValue: string): {
+  color?: string
+  iconValue: string
+} {
+  const match = iconValue.match(/^:([^[]+)\[([^\]]+)\]$/)
+  if (match) {
+    return { color: match[1], iconValue: match[2] }
+  }
+  return { iconValue }
 }
 
 /**
@@ -98,15 +114,53 @@ const DynamicIconDispatcher = ({
   }
 }
 
-export const DynamicIcon = (props: DynamicIconProps): React.ReactElement => (
-  <Suspense
-    fallback={
-      <StyledDynamicIcon {...props}>
-        <EmojiIcon {...props}>&nbsp;</EmojiIcon>
-      </StyledDynamicIcon>
-    }
-    key={props.iconValue}
-  >
-    <DynamicIconDispatcher {...props} />
-  </Suspense>
-)
+function createColorMapping(theme: EmotionTheme): Map<string, Object> {
+  const { red, orange, green, blue, violet, gray, primary } =
+    getMarkdownTextColors(theme)
+
+  return new Map(
+    Object.entries({
+      blue: { color: blue },
+      green: { color: green },
+      orange: { color: orange },
+      red: { color: red },
+      violet: { color: violet },
+      gray: { color: gray },
+      grey: { color: gray },
+      rainbow: {
+        background: `linear-gradient(to right, ${red}, ${orange}, ${green}, ${blue}, ${violet})`,
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+      },
+      primary: { color: primary },
+    })
+  )
+}
+
+export const DynamicIcon = (props: DynamicIconProps): React.ReactElement => {
+  const { color: parsedColor, iconValue: parsedIconValue } = parseColorAndIcon(
+    props.iconValue
+  )
+  const theme: EmotionTheme = useTheme()
+  const themeMode = hasLightBackgroundColor(theme) ? "light" : "dark"
+  const colorMapping = createColorMapping(theme)
+  const style = parsedColor ? colorMapping.get(parsedColor) : {}
+
+  const mergedProps = {
+    ...props,
+    style,
+    iconValue: parsedIconValue,
+  }
+  return (
+    <Suspense
+      fallback={
+        <StyledDynamicIcon {...mergedProps}>
+          <EmojiIcon {...mergedProps}>&nbsp;</EmojiIcon>
+        </StyledDynamicIcon>
+      }
+      key={`${mergedProps.iconValue}-${themeMode}`}
+    >
+      <DynamicIconDispatcher {...mergedProps} />
+    </Suspense>
+  )
+}

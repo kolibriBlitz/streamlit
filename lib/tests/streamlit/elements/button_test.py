@@ -14,9 +14,11 @@
 
 """button unit test."""
 
+import pytest
 from parameterized import parameterized
 
 import streamlit as st
+from streamlit.errors import StreamlitAPIException
 from tests.delta_generator_test_case import DeltaGeneratorTestCase
 
 
@@ -56,6 +58,22 @@ class ButtonTest(DeltaGeneratorTestCase):
 
         c = self.get_delta_from_queue().new_element.button
         assert c.icon == ":material/thumb_up:"
+
+    def test_colored_material_icon(self):
+        """Test that it can be called with material icon."""
+        st.button("the label", icon=":red[:material/thumb_up:]")
+
+        c = self.get_delta_from_queue().new_element.button
+        assert c.icon == ":red[:material/thumb_up:]"
+
+    def test_invalid_colored_material_icon(self):
+        with pytest.raises(StreamlitAPIException) as e:
+            st.button("the label", icon=":red[👍]")
+        assert "can only be used with Material icons." in str(e.value)
+
+        with pytest.raises(StreamlitAPIException) as e:
+            st.button("the label", icon=":invalid[:material/thumb_up:]")
+        assert "is not a valid color name." in str(e.value)
 
     def test_just_disabled(self):
         """Test that it can be called with disabled param."""

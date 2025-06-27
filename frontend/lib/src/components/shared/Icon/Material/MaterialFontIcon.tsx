@@ -31,6 +31,7 @@ interface MaterialIconProps {
   margin?: string
   padding?: string
   testid?: string
+  style?: React.CSSProperties
 }
 
 const getDefaultProps = ({
@@ -52,6 +53,7 @@ const MaterialFontIcon = ({
   return (
     <StyledMaterialIcon
       {...getDefaultProps(props)}
+      style={props.style}
       data-testid={props.testid || "stIconMaterial"}
       // Prevent the icon text from being translated
       // this would break the icon display in the UI.

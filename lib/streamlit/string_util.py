@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from streamlit.type_util import SupportsStr
 
 _ALPHANUMERIC_CHAR_REGEX: Final = re.compile(r"^[a-zA-Z0-9_&\-\. ]+$")
+_COLOR_ICON_REGEX: Final = re.compile(r"^:([^[]+)\[([^\]]+)\]$")
 
 
 def clean_text(text: SupportsStr) -> str:
@@ -59,9 +60,47 @@ def is_material_icon(maybe_icon: str) -> bool:
 
 def validate_icon_or_emoji(icon: str | None) -> str:
     """Validate an icon or emoji and return it in normalized format if valid."""
-    if icon is not None and icon.startswith(":material"):
+    if icon is None:
+        return ""
+
+    if icon.startswith(":material"):
         return validate_material_icon(icon)
+
+    if color_icon_match := re.match(_COLOR_ICON_REGEX, icon):
+        color, icon_name = color_icon_match.groups()
+        if not icon_name.startswith(":material"):
+            raise StreamlitAPIException(
+                f"Color {color} can only be used with Material icons. "
+                "Please use a Material icon shortcode like **`:material\u200b/thumb_up:`**."
+            )
+        material_icon_name = validate_material_icon(icon_name)
+        color = validate_color(color)
+        return f":{color}[{material_icon_name}]"
+
     return validate_emoji(icon)
+
+
+def validate_color(maybe_color: str) -> str:
+    """Validate a color name and return it in normalized format if valid."""
+    valid_colors = {
+        "blue",
+        "green",
+        "orange",
+        "red",
+        "violet",
+        "gray",
+        "grey",
+        "rainbow",
+        "primary",
+    }
+
+    if maybe_color in valid_colors:
+        return maybe_color
+
+    raise StreamlitAPIException(
+        f'The value "{maybe_color}" is not a valid color name. Please use a valid color in: '
+        f"{', '.join(valid_colors)}."
+    )
 
 
 def validate_emoji(maybe_emoji: str | None) -> str:
