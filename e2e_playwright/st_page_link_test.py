@@ -15,8 +15,9 @@
 from playwright.sync_api import Page, expect
 
 from e2e_playwright.conftest import ImageCompareFunction
+from e2e_playwright.shared.app_utils import get_element_by_key, get_expander
 
-PAGE_LINK_COUNT = 14
+PAGE_LINK_COUNT = 23
 
 
 def test_page_links(app: Page, assert_snapshot: ImageCompareFunction):
@@ -29,39 +30,22 @@ def test_page_links(app: Page, assert_snapshot: ImageCompareFunction):
     # (one for normal, one for mobile tooltip) so indices are off
     page_link_links = page_link_elements.get_by_test_id("stPageLink-NavLink")
 
-    assert_snapshot(page_link_links.nth(7), name="st_page_link-icon")
-    assert_snapshot(page_link_links.nth(10), name="st_page_link-disabled")
-    assert_snapshot(page_link_links.nth(12), name="st_page_link-material-icon")
+    assert_snapshot(page_link_links.nth(9), name="st_page_link-icon")
+    # help button before this means three in between these.
+    assert_snapshot(page_link_links.nth(12), name="st_page_link-disabled")
+    assert_snapshot(page_link_links.nth(13), name="st_page_link-material-icon")
 
     # st.Page object page links
-    assert_snapshot(page_link_links.nth(13), name="st_page_link-st_page_with_icon")
+    assert_snapshot(page_link_links.nth(14), name="st_page_link-st_page_with_icon")
     assert_snapshot(
-        page_link_links.nth(14), name="st_page_link-st_page_with_material_icon"
+        page_link_links.nth(15), name="st_page_link-st_page_with_material_icon"
     )
-    assert_snapshot(page_link_links.nth(15), name="st_page_link-st_page_icon_override")
+    assert_snapshot(page_link_links.nth(16), name="st_page_link-st_page_icon_override")
 
     # Sidebar page links
     assert_snapshot(page_link_links.nth(1), name="st_page_link-sidebar-icon")
+    # help button before this means three in between these.
     assert_snapshot(page_link_links.nth(4), name="st_page_link-sidebar-disabled")
-
-
-def test_default_container_width(app: Page, assert_snapshot: ImageCompareFunction):
-    """Test that st.page_link default container width in main is false and in sidebar is true."""
-    page_links = app.get_by_test_id("stPageLink")
-
-    page_links.nth(0).get_by_test_id("stMarkdownContainer").hover()
-    assert_snapshot(page_links.nth(0), name="st_page_link-sidebar-default")
-
-    page_links.nth(4).get_by_test_id("stMarkdownContainer").hover()
-    assert_snapshot(
-        page_links.nth(4), name="st_page_link-sidebar-container-width-false"
-    )
-
-    page_links.nth(5).get_by_test_id("stMarkdownContainer").hover()
-    assert_snapshot(page_links.nth(5), name="st_page_link-default")
-
-    page_links.nth(9).get_by_test_id("stMarkdownContainer").hover()
-    assert_snapshot(page_links.nth(9), name="st_page_link-container-width-true")
 
 
 def test_page_link_help_tooltip(app: Page):
@@ -70,10 +54,42 @@ def test_page_link_help_tooltip(app: Page):
     expect(page_links).to_have_count(PAGE_LINK_COUNT)
 
     # Get the tooltip hover target and ensure it's visible before hovering
-    hover_target = page_links.nth(7).get_by_test_id("stTooltipHoverTarget")
+    hover_target = page_links.nth(9).get_by_test_id("stTooltipHoverTarget")
     expect(hover_target).to_be_visible()
 
     # Hover over the tooltip target
     hover_target.hover()
 
     expect(app.get_by_text("Some help text")).to_be_visible()
+
+
+def test_page_link_width_examples(app: Page, assert_snapshot: ImageCompareFunction):
+    """Test page link width examples via screenshot matching."""
+    page_expander = get_expander(app, "Page Link Width Examples")
+
+    page_elements = page_expander.get_by_test_id("stPageLink")
+
+    assert_snapshot(page_elements.nth(0), name="st_page_link-width_content")
+    assert_snapshot(page_elements.nth(1), name="st_page_link-width_stretch")
+    assert_snapshot(page_elements.nth(2), name="st_page_link-width_500px")
+    assert_snapshot(page_elements.nth(3), name="st_page_link-width_content_help")
+    assert_snapshot(page_elements.nth(4), name="st_page_link-width_stretch_help")
+    assert_snapshot(page_elements.nth(5), name="st_page_link-width_500px_help")
+
+    # Test gradual deprecation of use_container_width
+    assert_snapshot(
+        get_element_by_key(app, "main_container_width_true"),
+        name="st_page_link-main_container_width_true",
+    )
+    assert_snapshot(
+        get_element_by_key(app, "main_container_width_false"),
+        name="st_page_link-main_container_width_false",
+    )
+    assert_snapshot(
+        get_element_by_key(app, "sidebar_container_width_true"),
+        name="st_page_link-sidebar_container_width_true",
+    )
+    assert_snapshot(
+        get_element_by_key(app, "sidebar_container_width_false"),
+        name="st_page_link-sidebar_container_width_false",
+    )

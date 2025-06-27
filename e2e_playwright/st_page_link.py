@@ -21,13 +21,6 @@ st.page_link("http://www.example.com", label="Icon Example", icon="🌎")
 st.page_link("http://www.example.com", label="Help Example", help="Some help text")
 st.page_link("http://www.example.com", label="Disabled Example", disabled=True)
 
-# Default is container width=false in main app section
-st.page_link(
-    "http://www.example.com",
-    label="Main container_width=true",
-    use_container_width=True,
-)
-
 # Test Material icon
 st.page_link(
     "http://www.example.com", label="Material Icon Example", icon=":material/home:"
@@ -52,6 +45,43 @@ st.page_link(page_with_material_icon, label="Page Link with Material Icon from s
 # Test overriding page icons in st.page_link
 st.page_link(page_with_icon, label="Override Page Icon from st.Page", icon="🔥")
 
+with st.expander("Page Link Width Examples", expanded=True):
+    st.page_link(
+        "https://example.com", label="Content Width (Default)", width="content"
+    )
+    st.page_link("https://example.com", label="Stretch Width", width="stretch")
+    st.page_link("https://example.com", label="500px Width", width=500)
+    st.page_link(
+        "https://example.com",
+        label="Content Width (help)",
+        width="content",
+        help="help text",
+    )
+    st.page_link(
+        "https://example.com",
+        label="Stretch Width (help)",
+        width="stretch",
+        help="help text",
+    )
+    st.page_link(
+        "https://example.com", label="500px Width (help)", width=500, help="help text"
+    )
+
+    # use_container_width is deprecated, but not removed from the API.
+    with st.container(key="main_container_width_true"):
+        st.page_link(
+            "http://www.example.com",
+            label="main_container_width_true",
+            use_container_width=True,
+        )
+
+    with st.container(key="main_container_width_false"):
+        st.page_link(
+            "http://www.example.com",
+            label="main_container_width_false",
+            use_container_width=False,
+        )
+
 with st.sidebar:
     st.page_link("http://www.example.com", label="Default Sidebar")
     st.page_link("http://www.example.com", label="Icon Sidebar", icon="🌎")
@@ -60,6 +90,21 @@ with st.sidebar:
     # Page links are container width by default in the sidebar
     st.page_link(
         "http://www.example.com",
-        label="Sidebar container_width=false",
-        use_container_width=False,
+        label="Sidebar content width",
+        width="content",
     )
+
+    # use_container_width is deprecated, but not removed from the API.
+    with st.container(key="sidebar_container_width_true"):
+        st.page_link(
+            "http://www.example.com",
+            label="max_width",
+            use_container_width=True,
+        )
+
+    with st.container(key="sidebar_container_width_false"):
+        st.page_link(
+            "http://www.example.com",
+            label="min_width",
+            use_container_width=False,
+        )

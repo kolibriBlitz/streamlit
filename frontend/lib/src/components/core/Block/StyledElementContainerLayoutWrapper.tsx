@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-import React, { FC, useMemo } from "react"
+import React, { FC, useContext, useMemo } from "react"
 
 import { useLayoutStyles } from "~lib/components/core/Layout/useLayoutStyles"
 import type { ElementNode } from "~lib/AppNode"
+import IsSidebarContext from "~lib/components/core/IsSidebarContext"
 
 import { StyledElementContainer } from "./styled-components"
 
@@ -29,6 +30,7 @@ export const StyledElementContainerLayoutWrapper: FC<
     node: ElementNode
   }
 > = ({ node, ...rest }) => {
+  const isInSidebar = useContext(IsSidebarContext)
   const styleOverrides = useMemo(() => {
     if (node.element.type === "imgs") {
       // The st.image element is potentially a list of images, so we always want
@@ -48,6 +50,11 @@ export const StyledElementContainerLayoutWrapper: FC<
         height: "auto",
         flex: "",
       }
+    } else if (node.element.type === "pageLink" && isInSidebar) {
+      // The page link needs to be full width when it is in the sidebar.
+      return {
+        width: "100%",
+      }
     } else if (
       node.element.type === "iframe" ||
       node.element.type === "deckGlJsonChart" ||
@@ -61,7 +68,7 @@ export const StyledElementContainerLayoutWrapper: FC<
     }
 
     return {}
-  }, [node.element.type])
+  }, [node.element.type, isInSidebar])
 
   const styles = useLayoutStyles({
     element: node.element,
