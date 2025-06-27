@@ -29,9 +29,14 @@ import { DynamicIcon } from "~lib/components/shared/Icon"
 import { useEmotionTheme } from "~lib/hooks/useEmotionTheme"
 
 import {
+  StyledColumnHeaderRow,
+  StyledColumnNameText,
+  StyledColumnNameWithIcon,
+  StyledIconButton,
   StyledMenuDivider,
   StyledMenuList,
   StyledMenuListItem,
+  StyledTypeIconContainer,
 } from "./styled-components"
 import FormattingMenu from "./FormattingMenu"
 
@@ -42,6 +47,8 @@ export interface ColumnMenuProps {
   left: number
   // The kind of the column
   columnKind: string
+  // The name of the column
+  columnName: string
   // Callback used to instruct the parent to close the menu
   onCloseMenu: () => void
   // Callback to sort column
@@ -74,6 +81,7 @@ function ColumnMenu({
   onSortColumn,
   onHideColumn,
   columnKind,
+  columnName,
   onChangeFormat,
   onAutosize,
 }: ColumnMenuProps): ReactElement {
@@ -102,12 +110,87 @@ function ColumnMenu({
     onCloseMenu()
   }, [onCloseMenu])
 
+  const handleCopyNameToClipboard = React.useCallback((): void => {
+    navigator.clipboard
+      .writeText(columnName)
+      .then(() => {
+        // Maybe show a small "Copied!" confirmation if desired in the future
+      })
+      .catch(err => {
+        // eslint-disable-next-line no-console
+        console.error("Failed to copy column name: ", err)
+      })
+  }, [columnName])
+
+  const getColumnTypeIcon = React.useCallback((kind: string): string => {
+    switch (kind) {
+      case "object":
+        return ":material/data_object:"
+      case "text":
+        return ":material/notes:"
+      case "checkbox":
+        return ":material/check_box:"
+      case "selectbox":
+        return ":material/arrow_drop_down_circle:"
+      case "list":
+        return ":material/list:"
+      case "number":
+        return ":material/tag:"
+      case "link":
+        return ":material/link:"
+      case "datetime":
+        return ":material/calendar_today:"
+      case "date":
+        return ":material/calendar_month:"
+      case "time":
+        return ":material/access_time:"
+      case "line_chart":
+        return ":material/show_chart:"
+      case "bar_chart":
+        return ":material/bar_chart:"
+      case "area_chart":
+        return ":material/area_chart:"
+      case "image":
+        return ":material/image:"
+      case "progress":
+        return ":material/commit:" // Represents progression/steps
+      case "json":
+        return ":material/code_blocks:"
+      default:
+        return ":material/info:" // Default as per your previous change
+    }
+  }, [])
+
   return (
     <Popover
       autoFocus
       aria-label="Dataframe column menu"
       content={
         <StyledMenuList>
+          <StyledColumnHeaderRow>
+            <StyledTypeIconContainer>
+              <DynamicIcon
+                iconValue={getColumnTypeIcon(columnKind)}
+                size={"base"}
+                color="inherit"
+              />
+            </StyledTypeIconContainer>
+            <StyledColumnNameWithIcon title={columnName}>
+              <StyledColumnNameText>{columnName}</StyledColumnNameText>
+              <StyledIconButton
+                onClick={handleCopyNameToClipboard}
+                title="Copy column name"
+              >
+                <DynamicIcon
+                  iconValue=":material/content_copy:"
+                  size={"sm"}
+                  margin="0"
+                  color="inherit"
+                />
+              </StyledIconButton>
+            </StyledColumnNameWithIcon>
+          </StyledColumnHeaderRow>
+
           {onSortColumn && (
             <>
               <StyledMenuListItem

@@ -1127,6 +1127,7 @@ function DataFrame({
           <ColumnMenu
             top={showMenu.headerBounds.y + showMenu.headerBounds.height}
             left={showMenu.headerBounds.x + showMenu.headerBounds.width}
+            columnName={originalColumns[showMenu.columnIdx].title}
             columnKind={originalColumns[showMenu.columnIdx].kind}
             onCloseMenu={() => setShowMenu(undefined)}
             onSortColumn={
