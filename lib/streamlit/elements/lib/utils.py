@@ -231,6 +231,16 @@ def compute_and_register_element_id(
     # If form_id is provided, add it to the kwargs.
     kwargs_to_use = {"form_id": form_id, **kwargs} if form_id else kwargs
 
+    # If style is provided, use it for the error message, to provide more context to the user
+    style = kwargs.get("style")
+    if style == "borderless":
+        # The borderless style is used by st.feedback, but users expect to see "feedback" in errors
+        element_type_for_error = "feedback"
+    elif style:
+        element_type_for_error = style
+    else:
+        element_type_for_error = element_type
+
     if ctx:
         # Add the active script hash to give elements on different
         # pages unique IDs.
@@ -251,7 +261,7 @@ def compute_and_register_element_id(
     )
 
     if ctx:
-        _register_element_id(ctx, element_type, element_id)
+        _register_element_id(ctx, element_type_for_error, element_id)
     return element_id
 
 
