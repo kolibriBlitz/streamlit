@@ -111,6 +111,7 @@ message Block {
   }
 
   message TabContainer {
+    int32 default_tab_index = 1;
   }
 
   message Tab {
