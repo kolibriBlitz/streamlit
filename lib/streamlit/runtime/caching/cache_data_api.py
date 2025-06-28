@@ -91,16 +91,18 @@ class CachedDataFuncInfo(CachedFuncInfo):
     def __init__(
         self,
         func: types.FunctionType,
-        show_spinner: bool | str,
         persist: CachePersistType,
         max_entries: int | None,
         ttl: float | timedelta | str | None,
+        show_spinner: bool | str,
         hash_funcs: HashFuncsDict | None = None,
+        show_time: bool = False,
     ) -> None:
         super().__init__(
             func,
-            show_spinner=show_spinner,
             hash_funcs=hash_funcs,
+            show_spinner=show_spinner,
+            show_time=show_time,
         )
         self.persist = persist
         self.max_entries = max_entries
@@ -372,6 +374,7 @@ class CacheDataAPI:
         ttl: float | timedelta | str | None = None,
         max_entries: int | None = None,
         show_spinner: bool | str = True,
+        show_time: bool = False,
         persist: CachePersistType | bool = None,
         experimental_allow_widgets: bool = False,
         hash_funcs: HashFuncsDict | None = None,
@@ -384,6 +387,7 @@ class CacheDataAPI:
         ttl: float | timedelta | str | None = None,
         max_entries: int | None = None,
         show_spinner: bool | str = True,
+        show_time: bool = False,
         persist: CachePersistType | bool = None,
         experimental_allow_widgets: bool = False,
         hash_funcs: HashFuncsDict | None = None,
@@ -394,6 +398,7 @@ class CacheDataAPI:
             max_entries=max_entries,
             persist=persist,
             show_spinner=show_spinner,
+            show_time=show_time,
             experimental_allow_widgets=experimental_allow_widgets,
             hash_funcs=hash_funcs,
         )
@@ -405,6 +410,7 @@ class CacheDataAPI:
         ttl: float | timedelta | str | None,
         max_entries: int | None,
         show_spinner: bool | str,
+        show_time: bool = False,
         persist: CachePersistType | bool,
         experimental_allow_widgets: bool,
         hash_funcs: HashFuncsDict | None = None,
@@ -594,6 +600,7 @@ class CacheDataAPI:
                         func=f,  # type: ignore
                         persist=persist_string,
                         show_spinner=show_spinner,
+                        show_time=show_time,
                         max_entries=max_entries,
                         ttl=ttl,
                         hash_funcs=hash_funcs,
@@ -609,6 +616,7 @@ class CacheDataAPI:
                 func=cast("types.FunctionType", func),
                 persist=persist_string,
                 show_spinner=show_spinner,
+                show_time=show_time,
                 max_entries=max_entries,
                 ttl=ttl,
                 hash_funcs=hash_funcs,

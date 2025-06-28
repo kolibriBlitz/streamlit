@@ -77,6 +77,7 @@ class LegacyCacheTest(unittest.TestCase):
             hash_funcs={},
             max_entries=10,
             ttl=1,
+            show_time=True,
         )
         def foo():
             return 42
@@ -88,6 +89,7 @@ class LegacyCacheTest(unittest.TestCase):
             hash_funcs={},
             max_entries=10,
             ttl=1,
+            show_time=True,
         )
 
     @patch("streamlit.cache_resource")
@@ -101,6 +103,7 @@ class LegacyCacheTest(unittest.TestCase):
             hash_funcs={},
             max_entries=10,
             ttl=1,
+            show_time=True,
         )
         def foo():
             return 42
@@ -111,4 +114,5 @@ class LegacyCacheTest(unittest.TestCase):
             hash_funcs={},
             max_entries=10,
             ttl=1,
+            show_time=True,  # New
         )
