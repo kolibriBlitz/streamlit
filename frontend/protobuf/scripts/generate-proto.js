@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { exec, execSync } from "child_process"
+import { execSync, spawnSync } from "child_process"
 import fs from "fs"
 import path from "path"
 
@@ -29,25 +29,25 @@ const outputJsFile = "proto.js"
 const outputDtsFile = "proto.d.ts"
 
 // Commands to run
-const pbjsCommand = `yarn run --silent pbjs ${protoGlob} --path ${protoDir} -t static-module --wrap es6`
-const pbtsCommand = `yarn run --silent pbts proto.js`
+const pbjsCommand = ["yarn", "run", "--silent", "pbjs", protoGlob, "--path", protoDir, "-t", "static-module", "--wrap", "es6"]
+const pbtsCommand = ["yarn", "run", "--silent", "pbts", "proto.js"]
 const TEMPLATE = "/* eslint-disable */\n\n"
 
-const runCommand = (command, outputFile) => {
+const runCommand = (commandAndArgs, outputFile) => {
   return new Promise((resolve, reject) => {
-    exec(command, { maxBuffer: 4096 * 1024 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error: ${error.message}`)
-        reject(error)
-        return
-      }
-      if (stderr) {
-        console.error(`stderr: ${stderr}`)
-      }
-      fs.writeFileSync(outputFile, `${TEMPLATE}${stdout}`, "utf8")
-      console.log(`Generated: ${outputFile}`)
-      resolve()
-    })
+    const [cmd, ...args] = commandAndArgs
+    const result = spawnSync(cmd, args, { maxBuffer: 4096 * 1024, encoding: "utf8" })
+    if (result.error) {
+      console.error(`Error: ${result.error.message}`)
+      reject(result.error)
+      return
+    }
+    if (result.stderr) {
+      console.error(`stderr: ${result.stderr}`)
+    }
+    fs.writeFileSync(outputFile, `${TEMPLATE}${result.stdout}`, "utf8")
+    console.log(`Generated: ${outputFile}`)
+    resolve()
   })
 }
 
