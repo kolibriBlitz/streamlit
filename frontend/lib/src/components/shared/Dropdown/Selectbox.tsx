@@ -53,7 +53,7 @@ export interface Props {
   label?: string | null
   labelVisibility?: LabelVisibilityOptions
   help?: string
-  placeholder?: string
+  placeholder?: string | null
   clearable?: boolean
   acceptNewOptions?: boolean | null
 }
@@ -157,14 +157,22 @@ const Selectbox: React.FC<Props> = ({
     selectValue = [{ label: value, value }]
   }
 
+  // If no custom placeholder provided (empty string or null), determine appropriate default based on widget state
   let selectboxPlaceholder = placeholder
-  if (opts.length === 0) {
-    if (!acceptNewOptions) {
-      selectboxPlaceholder = "No options to select"
-      // When a user cannot add new options and there are no options to select from, we disable the selectbox
-      selectDisabled = true
+  if (!placeholder || placeholder === "") {
+    if (opts.length === 0) {
+      if (!acceptNewOptions) {
+        selectboxPlaceholder = "No options to select"
+        // When a user cannot add new options and there are no options to select from, we disable the selectbox
+        selectDisabled = true
+      } else {
+        selectboxPlaceholder = "Add an option"
+      }
     } else {
-      selectboxPlaceholder = "Add an option"
+      // For non-empty options, set appropriate default placeholder
+      selectboxPlaceholder = acceptNewOptions
+        ? "Choose or add an option"
+        : "Choose an option"
     }
   }
 

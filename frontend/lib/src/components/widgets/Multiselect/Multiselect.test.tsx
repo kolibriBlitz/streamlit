@@ -160,23 +160,97 @@ describe("Multiselect widget", () => {
     })
 
     it("renders with empty options", () => {
-      const props = getProps({ default: [], options: [] })
+      const props = getProps({
+        default: [],
+        options: [],
+        placeholder: "", // No placeholder provided to test default logic
+      })
       render(<Multiselect {...props} />)
 
       const placeholder = screen.getByText("No options to select")
       expect(placeholder).toBeInTheDocument()
     })
 
-    it("renders with empty options when acceptNewOptions is true", () => {
+    it("renders with custom placeholder when options are empty and acceptNewOptions is true", () => {
       const props = getProps({
         default: [],
         options: [],
         acceptNewOptions: true,
+        placeholder: "Custom empty placeholder",
+      })
+      render(<Multiselect {...props} />)
+
+      expect(screen.getByText("Custom empty placeholder")).toBeInTheDocument()
+      expect(screen.getByRole("combobox")).not.toBeDisabled()
+    })
+
+    it("renders with default placeholder when options are empty, acceptNewOptions is true, and backend default placeholder is provided", () => {
+      const props = getProps({
+        default: [],
+        options: [],
+        acceptNewOptions: true,
+        placeholder: "", // No placeholder provided to test default logic
       })
       render(<Multiselect {...props} />)
 
       expect(screen.getByText("Add options")).toBeInTheDocument()
       expect(screen.getByRole("combobox")).not.toBeDisabled()
+    })
+
+    it("renders with appropriate default placeholder when options are available", () => {
+      const props = getProps({
+        default: [],
+        options: ["a", "b", "c"],
+        acceptNewOptions: false,
+        placeholder: "", // No placeholder provided to test default logic
+      })
+      render(<Multiselect {...props} />)
+
+      expect(screen.getByText("Choose an option")).toBeInTheDocument()
+    })
+
+    it("renders with appropriate default placeholder when options are available and acceptNewOptions is true", () => {
+      const props = getProps({
+        default: [],
+        options: ["a", "b", "c"],
+        acceptNewOptions: true,
+        placeholder: "", // No placeholder provided to test default logic
+      })
+      render(<Multiselect {...props} />)
+
+      expect(screen.getByText("Choose or add an option")).toBeInTheDocument()
+    })
+
+    it("treats empty string placeholder as no placeholder provided", () => {
+      const props = getProps({
+        default: [],
+        options: ["a", "b", "c"],
+        placeholder: "",
+        acceptNewOptions: false,
+      })
+      render(<Multiselect {...props} />)
+
+      // Should show default placeholder when empty string is provided
+      expect(screen.getByText("Choose an option")).toBeInTheDocument()
+    })
+
+    it("handles single space placeholder as a valid placeholder", () => {
+      const props = getProps({
+        default: [],
+        options: ["a", "b", "c"],
+        placeholder: " ",
+      })
+      render(<Multiselect {...props} />)
+
+      // Should not show any default placeholder text since single space is provided
+      expect(screen.queryByText("Choose an option")).not.toBeInTheDocument()
+      expect(
+        screen.queryByText("Choose or add an option")
+      ).not.toBeInTheDocument()
+      expect(screen.queryByText("Add options")).not.toBeInTheDocument()
+      expect(
+        screen.queryByText("No options to select")
+      ).not.toBeInTheDocument()
     })
   })
 

@@ -99,6 +99,7 @@ describe("Selectbox widget", () => {
     props = getProps({
       options: [],
       value: undefined,
+      placeholder: undefined, // No placeholder provided to test default logic
     })
     render(<Selectbox {...props} />)
 
@@ -111,6 +112,7 @@ describe("Selectbox widget", () => {
       options: [],
       acceptNewOptions: true,
       value: undefined,
+      placeholder: undefined, // No placeholder provided to test default logic
     })
     render(<Selectbox {...props} />)
 
@@ -308,6 +310,54 @@ describe("Selectbox widget", () => {
     await user.type(selectboxInput, "hello world!")
     await user.keyboard("{enter}")
     expect(props.onChange).toHaveBeenCalledTimes(0)
+  })
+
+  it("renders with default placeholder when options are empty and acceptNewOptions is true", () => {
+    const props = getProps({
+      options: [],
+      acceptNewOptions: true,
+      placeholder: undefined, // No placeholder provided to test default logic
+      value: null, // No value selected to show placeholder
+    })
+    render(<Selectbox {...props} />)
+
+    expect(screen.getByText("Add an option")).toBeInTheDocument()
+  })
+
+  it("renders with default placeholder when options are empty, acceptNewOptions is true, and backend default placeholder is provided", () => {
+    const props = getProps({
+      options: [],
+      acceptNewOptions: true,
+      placeholder: undefined, // No placeholder provided to test default logic
+      value: null, // No value selected to show placeholder
+    })
+    render(<Selectbox {...props} />)
+
+    expect(screen.getByText("Add an option")).toBeInTheDocument()
+  })
+
+  it("renders with appropriate default placeholder when options are available", () => {
+    const props = getProps({
+      options: ["a", "b", "c"],
+      acceptNewOptions: false,
+      placeholder: undefined, // No placeholder provided to test default logic
+      value: null, // No value selected to show placeholder
+    })
+    render(<Selectbox {...props} />)
+
+    expect(screen.getByText("Choose an option")).toBeInTheDocument()
+  })
+
+  it("renders with appropriate default placeholder when options are available and acceptNewOptions is true", () => {
+    const props = getProps({
+      options: ["a", "b", "c"],
+      acceptNewOptions: true,
+      placeholder: undefined, // No placeholder provided to test default logic
+      value: null, // No value selected to show placeholder
+    })
+    render(<Selectbox {...props} />)
+
+    expect(screen.getByText("Choose or add an option")).toBeInTheDocument()
   })
 })
 
