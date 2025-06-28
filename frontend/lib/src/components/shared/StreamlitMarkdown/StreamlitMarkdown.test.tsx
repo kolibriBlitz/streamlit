@@ -453,6 +453,22 @@ describe("StreamlitMarkdown", () => {
     expect(markdown).toBeInTheDocument()
   })
 
+  it("properly handle material icon inside inline code", () => {
+    const source = ":material/celebration: and `:material/celebration:`"
+    render(<StreamlitMarkdown source={source} allowHTML={false} />)
+
+    const renderedMaterialIcon = screen.getByText("celebration")
+    expect(renderedMaterialIcon.nodeName.toLowerCase()).toBe("span")
+    expect(renderedMaterialIcon).toHaveStyle(
+      `font-family: Material Symbols Rounded`
+    )
+
+    const codeBlock = screen.getByText(":material\u200b/celebration:", {
+      exact: true,
+    })
+    expect(codeBlock.nodeName.toLowerCase()).toBe("code")
+  })
+
   it("properly adds background colors", () => {
     const redbg = transparentize(colors.red80, 0.9)
     const orangebg = transparentize(colors.yellow70, 0.9)

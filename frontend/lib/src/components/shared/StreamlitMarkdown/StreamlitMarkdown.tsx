@@ -430,6 +430,271 @@ function createColorMapping(theme: EmotionTheme): Map<string, string> {
         ${redbg}, ${orangebg}, ${yellowbg}, ${greenbg}, ${bluebg}, ${violetbg}, ${purplebg});`,
     })
   )
+
+  function remarkColoringAndSmall() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+    return (tree: any) => {
+      visit(tree, "textDirective", (node, _index, _parent) => {
+        const nodeName = String(node.name)
+
+        // Handle small text directive (:small[])
+        if (nodeName === "small") {
+          const data = node.data || (node.data = {})
+          data.hName = "span"
+          data.hProperties = data.hProperties || {}
+          data.hProperties.style = `font-size: ${theme.fontSizes.sm};`
+          return
+        }
+
+        // Handle badge directives (:color-badge[])
+        const badgeMatch = nodeName.match(/^(.+)-badge$/)
+        if (badgeMatch && colorMapping.has(badgeMatch[1])) {
+          const color = badgeMatch[1]
+
+          // rainbow-badge is not supported because the rainbow text effect uses
+          // background-clip: text with a transparent color, which conflicts with
+          // having a background color for the badge.
+          // We *could* support it by using a nested span structure, but that breaks
+          // the material icon handling below.
+          // We can support that in the future if we want to, but I think a
+          // rainbow-colored badge shouldn't be a common use case anyway.
+          if (color === "rainbow") {
+            return
+          }
+
+          const textColor = colorMapping.get(color)
+          const bgColor = colorMapping.get(`${color}-background`)
+
+          if (textColor && bgColor) {
+            const data = node.data || (node.data = {})
+            data.hName = "span"
+            data.hProperties = data.hProperties || {}
+            data.hProperties.className = "is-badge"
+            data.hProperties.style = `${bgColor}; ${textColor}; font-size: ${theme.fontSizes.sm};`
+            return
+          }
+        }
+
+        // Handle color directives (:color[] or :color-background[])
+        if (colorMapping.has(nodeName)) {
+          const data = node.data || (node.data = {})
+          const style = colorMapping.get(nodeName)
+          data.hName = "span"
+          data.hProperties = data.hProperties || {}
+          data.hProperties.style = style
+          // Add class name specific to colored text used for button hover selector
+          // to override text color
+          data.hProperties.className = "colored-text"
+          // Add class for background color for custom styling
+          if (
+            style &&
+            (/background-color:/.test(style) || /background:/.test(style))
+          ) {
+            data.hProperties.className = "has-background-color"
+          }
+          return
+        }
+
+        // Handle unsupported directives
+        // We convert unsupported text directives to plain text to avoid them being
+        // ignored / not rendered. See https://github.com/streamlit/streamlit/issues/8726,
+        // https://github.com/streamlit/streamlit/issues/5968
+        node.type = "text"
+        node.value = `:${nodeName}`
+        node.data = {}
+      })
+    }
+  }
+
+  function remarkMaterialIcons() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+    return (tree: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+      function replace(fullMatch: string, iconName: string): any {
+        return {
+          type: "text",
+          value: fullMatch,
+          data: {
+            hName: "span",
+            hProperties: {
+              role: "img",
+              ariaLabel: iconName + " icon",
+              // Prevent the icon text from being translated
+              // this would break the icon display in the UI.
+              // https://github.com/streamlit/streamlit/issues/10168
+              translate: "no",
+              style: {
+                display: "inline-block",
+                fontFamily: theme.genericFonts.iconFont,
+                fontWeight: theme.fontWeights.normal,
+                // Disable selection for copying it as text.
+                // Allowing this leads to copying the underlying icon name,
+                // which can be confusing / unexpected.
+                userSelect: "none",
+                verticalAlign: "bottom",
+                whiteSpace: "nowrap",
+                wordWrap: "normal",
+              },
+            },
+            hChildren: [{ type: "text", value: iconName }],
+          },
+        }
+      }
+      // We replace all `:material/` occurrences with `:material_` to avoid
+      // conflicts with the directive plugin.
+      // Since all `:material/` already got replaced with `:material_`
+      // within the markdown text (see below), we need to use `:material_`
+      // within the regex.
+      findAndReplace(tree, [[/:material_(\w+):/g, replace]])
+      return tree
+    }
+  }
+
+  function remarkStreamlitLogo() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+    return (tree: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+      function replaceStreamlit(): any {
+        return {
+          type: "text",
+          value: "",
+          data: {
+            hName: "img",
+            hProperties: {
+              src: streamlitLogo,
+              alt: "Streamlit logo",
+              style: {
+                display: "inline-block",
+                // Disable selection for copying it as text.
+                // Allowing this leads to copying the alt text,
+                // which can be confusing / unexpected.
+                userSelect: "none",
+                height: "0.75em",
+                verticalAlign: "baseline",
+                // The base of the Streamlit logo is curved, so move it down a bit to
+                // make it look aligned with the text.
+                // eslint-disable-next-line streamlit-custom/no-hardcoded-theme-values
+                marginBottom: "-0.05ex",
+              },
+            },
+          },
+        }
+      }
+      findAndReplace(tree, [[/:streamlit:/g, replaceStreamlit]])
+      return tree
+    }
+  }
+
+  function remarkTypographicalSymbols() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TODO: Replace 'any' with a more specific type.
+    return (tree: any) => {
+      visit(tree, (node, index, parent) => {
+        if (
+          parent &&
+          (parent.type === "link" || parent.type === "linkReference")
+        ) {
+          // Don't replace symbols in links.
+          // Note that remark extensions are not applied in code blocks and latex
+          // formulas, so we don't need to worry about them here.
+          return
+        }
+
+        if (node.type === "text" && node.value) {
+          // Only replace symbols wrapped in spaces, so it's a bit safer in case the
+          // symbols are used as part of a word or longer string of symbols.
+          const replacements = [
+            [/(^|\s)<->(\s|$)/g, "$1↔$2"],
+            [/(^|\s)->(\s|$)/g, "$1→$2"],
+            [/(^|\s)<-(\s|$)/g, "$1←$2"],
+            [/(^|\s)--(\s|$)/g, "$1—$2"],
+            [/(^|\s)>=(\s|$)/g, "$1≥$2"],
+            [/(^|\s)<=(\s|$)/g, "$1≤$2"],
+            [/(^|\s)~=(\s|$)/g, "$1≈$2"],
+          ]
+
+          let newValue = node.value
+          for (const [pattern, replacement] of replacements) {
+            newValue = newValue.replace(pattern, replacement as string)
+          }
+
+          if (newValue !== node.value) {
+            node.value = newValue
+          }
+        }
+      })
+
+      return tree
+    }
+  }
+
+  const plugins = [
+    remarkMathPlugin,
+    remarkEmoji,
+    remarkGfm,
+    remarkDirective,
+    remarkColoringAndSmall,
+    remarkMaterialIcons,
+    remarkStreamlitLogo,
+    remarkTypographicalSymbols,
+  ]
+
+  const rehypePlugins: PluggableList = [
+    rehypeKatex,
+    ...(allowHTML ? [rehypeRaw] : []),
+  ]
+
+  // :material/ is detected as an directive by remark directive logic.
+  // However, the directive logic ignores emoji shortcodes. As a workaround,
+  // we can make it look like an emoji shortcode by replacing the `/` with `_`.
+  const INVISIBLE_WHITE_SPACE = "\u200b"
+  const processedSource = source
+    .replace(
+      /(`[^`]*?):material\/([^`]*?)(:`)/g,
+      `$1:material${INVISIBLE_WHITE_SPACE}/$2$3`
+    )
+    .replaceAll(":material/", ":material_")
+
+  // Sets disallowed markdown for widget labels
+  const disallowed = [
+    // Restricts table elements, headings, unordered/ordered lists, task lists, horizontal rules, & blockquotes
+    // Note that images are allowed but have a max height equal to the text height
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "input",
+    "hr",
+    "blockquote",
+    // additionally restrict links
+    ...(disableLinks ? ["a"] : []),
+  ]
+
+  return (
+    <ErrorBoundary>
+      <ReactMarkdown
+        remarkPlugins={plugins}
+        rehypePlugins={rehypePlugins}
+        components={renderers}
+        transformLinkUri={transformLinkUri}
+        disallowedElements={isLabel ? disallowed : []}
+        // unwrap and render children from invalid markdown
+        unwrapDisallowed={true}
+      >
+        {processedSource}
+      </ReactMarkdown>
+    </ErrorBoundary>
+  )
 }
 
 /**
