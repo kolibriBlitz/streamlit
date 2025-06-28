@@ -57,6 +57,8 @@ def create_oauth_client(provider: str) -> tuple[TornadoOAuth2App, str]:
         provider_client_kwargs["scope"] = "openid email profile"
     if "prompt" not in provider_client_kwargs:
         provider_client_kwargs["prompt"] = "select_account"
+    if "callback_endpoints_to_call" not in provider_client_kwargs:
+        provider_client_kwargs["callback_endpoints_to_call"] = "[]"
 
     oauth = TornadoOAuth(config, cache=auth_cache)
     oauth.register(provider)
@@ -171,6 +173,34 @@ class AuthCallbackHandler(AuthHandlerMixin, tornado.web.RequestHandler):
         client, _ = create_oauth_client(provider)
         token = client.authorize_access_token(self)
         user = cast("dict[str, Any]", token.get("userinfo"))
+
+        callback_endpoints_to_call = cast(
+            "list[dict[str, str]]",
+            client.client_kwargs.get("callback_endpoints_to_call")
+        )
+
+        if user and callback_endpoints_to_call:
+            from requests import Session, Response
+            with Session() as session:
+                session.headers.update(
+                    {"Authorization": f"Bearer {token['access_token']}"}
+                )
+                for callback_endpoint_data in callback_endpoints_to_call:
+                    try:
+                        method = callback_endpoint_data.get("method", "get")
+                        callback_endpoint = callback_endpoint_data.get(
+                            "endpoint"
+                        )
+                        request_method = session.__getattribute__(method)
+                        response: Response = request_method(callback_endpoint)
+                        response.raise_for_status()
+                        additional_data = response.json()
+                        user.update(additional_data)
+                    except Exception as e:
+                        self.send_error(
+                            400,
+                            reason=f"Error calling callback endpoint {callback_endpoint}: {e}"
+                        )
 
         cookie_value = dict(user, origin=origin, is_logged_in=True)
         if user:
