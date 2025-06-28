@@ -43,6 +43,7 @@ from streamlit.web import cli
 from streamlit.web.cli import _convert_config_option_to_click_option
 from tests import testutil
 
+from unittest.mock import patch
 
 class CliTest(unittest.TestCase):
     """Unit tests for the cli."""
@@ -54,6 +55,7 @@ class CliTest(unittest.TestCase):
 
         cli.name = "streamlit"
         self.runner = CliRunner()
+        self.cli = cli
 
         self.patches = [
             patch.object(config._on_config_parsed, "send"),
@@ -493,6 +495,160 @@ class CliTest(unittest.TestCase):
         _args, kwargs = streamlit.web.bootstrap.load_config_options.call_args
         assert kwargs["flag_options"]["server_port"] == 8502
         assert result.exit_code == 0
+
+    def test_run_command_with_headless_shorthand_flag(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with (
+                patch("streamlit.web.bootstrap.run"),
+                patch("streamlit.web.bootstrap.load_config_options") as mock_load_config,
+            ):
+                result = self.runner.invoke(self.cli, ["run", "-hd", app_path])
+
+            mock_load_config.assert_called_once()
+            _, kwargs = mock_load_config.call_args
+            self.assertTrue(kwargs["flag_options"]["server_headless"])
+            self.assertEqual(result.exit_code, 0)
+
+    def test_run_command_with_run_on_save_shorthand_flag(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with (
+                patch("streamlit.web.bootstrap.run"),
+                patch("streamlit.web.bootstrap.load_config_options") as mock_load_config,
+            ):
+                result = self.runner.invoke(self.cli, ["run", "-r", app_path])
+
+            mock_load_config.assert_called_once()
+            _, kwargs = mock_load_config.call_args
+            self.assertTrue(kwargs["flag_options"]["server_runOnSave"])
+            self.assertEqual(result.exit_code, 0)
+
+    def test_run_command_with_port_shorthand_flag(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with (
+                patch("streamlit.web.bootstrap.run"),
+                patch("streamlit.web.bootstrap.load_config_options") as mock_load_config,
+            ):
+                result = self.runner.invoke(self.cli, ["run", "-p", "6000", app_path])
+
+            mock_load_config.assert_called_once()
+            _, kwargs = mock_load_config.call_args
+            self.assertEqual(kwargs["flag_options"]["server_port"], 6000)
+            self.assertEqual(result.exit_code, 0)
+
+    def test_run_command_with_combined_shorthand_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with (
+                patch("streamlit.web.bootstrap.run"),
+                patch("streamlit.web.bootstrap.load_config_options") as mock_load_config,
+            ):
+                result = self.runner.invoke(self.cli, ["run", "-hd", "-r", "-p", "7000", app_path])
+
+            mock_load_config.assert_called_once()
+            _, kwargs = mock_load_config.call_args
+            self.assertTrue(kwargs["flag_options"]["server_headless"])
+            self.assertTrue(kwargs["flag_options"].get("server_runOnSave", False))
+            self.assertEqual(kwargs["flag_options"]["server_port"], 7000)
+            self.assertEqual(result.exit_code, 0)
+
+    def test_conflicting_headless_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-hd", "--server.headless=false", app_path],
+                    standalone_mode=True,
+                )
+            self.assertNotEqual(result.exit_code, 0)
+    
+    def test_non_conflicting_headless_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-hd", "--server.headless=true", app_path],
+                    standalone_mode=True,
+                )
+            self.assertEqual(result.exit_code, 0)
+
+    def test_conflicting_port_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-p", "1337", "--server.port=1234", app_path],
+                    standalone_mode=True,
+                )
+            self.assertNotEqual(result.exit_code, 0)
+
+    def test_non_conflicting_port_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-p", "1337", "--server.port=1337", app_path],
+                    standalone_mode=True,
+                )
+            self.assertEqual(result.exit_code, 0)
+    
+    def test_conflicting_run_on_save_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-r", "--server.runOnSave=false", app_path],
+                    standalone_mode=True,
+                )
+            self.assertNotEqual(result.exit_code, 0)
+    
+    def test_non_conflicting_run_on_save_flags(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            app_path = os.path.join(tmpdir, "app.py")
+            with open(app_path, "w") as f:
+                f.write("# dummy streamlit app\n")
+
+            with patch("streamlit.web.bootstrap.run"):
+                result = self.runner.invoke(
+                    self.cli,
+                    ["run", "-r", "--server.runOnSave=true", app_path],
+                    standalone_mode=True,
+                )
+            self.assertEqual(result.exit_code, 0)
 
     def test_config_show_command(self):
         """Tests the config show command calls the corresponding method in

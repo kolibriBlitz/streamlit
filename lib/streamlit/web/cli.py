@@ -194,6 +194,9 @@ def main_hello(**kwargs: Any) -> None:
 
 @main.command("run")
 @configurator_options
+@click.option("-hd", "--headless", is_flag=True,  default=None, help="Run in headless mode")
+@click.option("-r", "--run-on-save", is_flag=True,  default=None, help="Run on save")
+@click.option("-p", "--port", type=int,  default=None, help="Port to listen on")
 @click.argument("target", required=True, envvar="STREAMLIT_RUN_TARGET")
 @click.argument("args", nargs=-1)
 def main_run(target: str, args: list[str] | None = None, **kwargs: Any) -> None:
@@ -204,6 +207,29 @@ def main_run(target: str, args: list[str] | None = None, **kwargs: Any) -> None:
 
     """
     from streamlit import url_util
+
+    flag_options = dict(kwargs)
+    shorthand_flags = {
+        "headless": "server_headless",
+        "run_on_save": "server_runOnSave",
+        "port": "server_port",
+    }
+
+    shorthand_values = {k: kwargs.get(k) for k in shorthand_flags.keys()}
+
+    # Check for flag conflicts (short and long versions not being congruent)
+    for shorthand_key, config_key in shorthand_flags.items():
+        shorthand_val = shorthand_values[shorthand_key]
+        longform_val = flag_options.get(config_key)
+
+        if shorthand_val is not None:
+            if longform_val is not None and longform_val != shorthand_val:
+                raise click.UsageError(
+                    f"Conflicting flags for '{config_key}': "
+                    f"shorthand flag is {shorthand_val}, "
+                    f"but long-form flag is {longform_val}."
+                )
+            flag_options[config_key] = shorthand_val
 
     _, extension = os.path.splitext(target)
     if extension[1:] not in ACCEPTED_FILE_EXTENSIONS:
@@ -229,11 +255,11 @@ def main_run(target: str, args: list[str] | None = None, **kwargs: Any) -> None:
             # if this is a GitHub/Gist blob url, convert to a raw URL first.
             target = url_util.process_gitblob_url(target)
             _download_remote(main_script_path, target)
-            _main_run(main_script_path, args, flag_options=kwargs)
+            _main_run(main_script_path, args, flag_options=flag_options)
     else:
         if not os.path.exists(target):
             raise click.BadParameter(f"File does not exist: {target}")
-        _main_run(target, args, flag_options=kwargs)
+        _main_run(target, args, flag_options=flag_options)
 
 
 def _get_command_line_as_string() -> str | None:
