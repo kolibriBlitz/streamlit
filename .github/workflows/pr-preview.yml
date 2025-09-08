@@ -32,7 +32,7 @@ jobs:
       - if: ${{ env.AWS_ACCESS_KEY_ID != '' }}
         name: Create or update comment (Building)
         id: initial-comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CORE_PREVIEWS_S3_KEY_ID }}
         with:
@@ -181,7 +181,7 @@ jobs:
           echo "s3-url=${S3_URL}" >> $GITHUB_OUTPUT
       - if: steps.exports.outputs.enable-setup == 'true' && success() && github.repository == 'streamlit/streamlit' && github.event_name == 'pull_request'
         name: Set S3 URL as Github Status
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           S3_URL: ${{ steps.exports.outputs.s3-url }}
         with:
@@ -216,7 +216,7 @@ jobs:
     steps:
       - name: Compare wheel sizes
         id: compare-sizes
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const threshold = parseFloat(process.env.SIZE_CHANGE_THRESHOLD);
@@ -307,7 +307,7 @@ jobs:
 
       - name: Add PR comment for significant size change
         if: success() && fromJSON(steps.compare-sizes.outputs.result).is_significant
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const result = JSON.parse(process.env.COMPARE_RESULT);
@@ -434,7 +434,7 @@ jobs:
           fetch-depth: 1
 
       - name: Update comment (Ready)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // Find the existing comment
